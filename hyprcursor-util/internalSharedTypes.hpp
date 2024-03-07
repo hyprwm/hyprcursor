@@ -1,0 +1,1 @@
+../libhyprcursor/internalSharedTypes.hpp

@@ -1,0 +1,71 @@
+cmake_minimum_required(VERSION 3.19)
+
+set(HYPRCURSOR_VERSION "0.1.0")
+
+project(hyprcursor
+    VERSION ${HYPRCURSOR_VERSION}
+    DESCRIPTION "A library and toolkit for the Hyprland cursor format"
+)
+
+include(CTest)
+include(GNUInstallDirs)
+
+set(PREFIX ${CMAKE_INSTALL_PREFIX})
+set(INCLUDE ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+set(LIBDIR ${CMAKE_INSTALL_FULL_LIBDIR})
+
+configure_file(hyprcursor.pc.in hyprcursor.pc @ONLY)
+
+set(CMAKE_CXX_STANDARD 23)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprlang>=0.4.0 libzip cairo)
+
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+    message(STATUS "Configuring hyprcursor in Debug")
+    add_compile_definitions(HYPRLAND_DEBUG)
+else()
+    add_compile_options(-O3)
+    message(STATUS "Configuring hyprcursor in Release")
+endif()
+
+file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "libhyprcursor/*.cpp" "include/hyprcursor.hpp" "include/hyprcursor.h")
+
+add_library(hyprcursor SHARED ${SRCFILES})
+target_include_directories( hyprcursor
+    PUBLIC "./include"
+    PRIVATE "./libhyprcursor"
+)
+set_target_properties(hyprcursor PROPERTIES
+    VERSION ${hyprcursor_VERSION}
+    SOVERSION 0
+    PUBLIC_HEADER include/hyprcursor.hpp
+    PUBLIC_HEADER include/hyprcursor.h
+)
+
+target_link_libraries(hyprcursor PkgConfig::deps)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # for std::expected.
+    # probably evil. Arch's clang is very outdated tho...
+    target_compile_options(hyprcursor PUBLIC -std=gnu++2b -D__cpp_concepts=202002L -Wno-macro-redefined)
+endif()
+
+# hyprcursor-util
+add_subdirectory(hyprcursor-util)
+
+install(TARGETS hyprcursor)
+
+# tests
+add_custom_target(tests)
+
+add_executable(hyprcursor_test "tests/test.cpp")
+target_link_libraries(hyprcursor_test PRIVATE hyprcursor)
+add_test(NAME "Test libhyprcursor" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test)
+add_dependencies(tests hyprcursor_test)
+
+# Installation
+install(TARGETS hyprcursor
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES ${CMAKE_BINARY_DIR}/hyprcursor.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

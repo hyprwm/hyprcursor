@@ -1,0 +1,246 @@
+#include <iostream>
+#include <zip.h>
+#include <optional>
+#include <filesystem>
+#include <hyprlang.hpp>
+#include "internalSharedTypes.hpp"
+
+static std::string removeBeginEndSpacesTabs(std::string str) {
+    if (str.empty())
+        return str;
+
+    int countBefore = 0;
+    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
+        countBefore++;
+    }
+
+    int countAfter = 0;
+    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
+        countAfter++;
+    }
+
+    str = str.substr(countBefore, str.length() - countBefore - countAfter);
+
+    return str;
+}
+
+std::unique_ptr<SCursorTheme> currentTheme;
+
+static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
+    Hyprlang::CParseResult result;
+    const std::string      VALUE = V;
+
+    if (!VALUE.contains(",")) {
+        result.setError("Invalid define_size");
+        return result;
+    }
+
+    const auto   LHS = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
+    const auto   RHS = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
+
+    SCursorImage image;
+    image.filename = RHS;
+
+    try {
+        image.size = std::stoull(LHS);
+    } catch (std::exception& e) {
+        result.setError(e.what());
+        return result;
+    }
+
+    currentTheme->shapes.back().images.push_back(image);
+
+    return result;
+}
+
+static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
+    Hyprlang::CParseResult result;
+    const std::string      VALUE = V;
+
+    currentTheme->shapes.back().overrides.push_back(V);
+
+    return result;
+}
+
+std::optional<std::string> createCursorThemeFromPath(const std::string& path, const std::string& out_ = {}) {
+    if (!std::filesystem::exists(path))
+        return "input path does not exist";
+
+    std::string out = out_.empty() ? path.substr(0, path.find_last_of('/') + 1) + "theme/" : out_;
+
+    const auto  MANIFESTPATH = path + "/manifest.hl";
+    if (!std::filesystem::exists(MANIFESTPATH))
+        return "manifest.hl is missing";
+
+    std::unique_ptr<Hyprlang::CConfig> manifest;
+    try {
+        manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
+        manifest->addConfigValue("cursors_directory", Hyprlang::STRING{""});
+        manifest->commence();
+        manifest->parse();
+    } catch (const char* err) { return "failed parsing manifest: " + std::string{err}; }
+
+    const std::string CURSORSSUBDIR = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("cursors_directory"));
+    const std::string CURSORDIR     = path + "/" + CURSORSSUBDIR;
+
+    if (CURSORSSUBDIR.empty() || !std::filesystem::exists(CURSORDIR))
+        return "manifest: cursors_directory missing or empty";
+
+    // iterate over the directory and record all cursors
+
+    currentTheme = std::make_unique<SCursorTheme>();
+    for (auto& dir : std::filesystem::directory_iterator(CURSORDIR)) {
+        const auto METAPATH = dir.path().string() + "/meta.hl";
+
+        auto&      SHAPE = currentTheme->shapes.emplace_back();
+
+        //
+        std::unique_ptr<Hyprlang::CConfig> meta;
+
+        try {
+            meta = std::make_unique<Hyprlang::CConfig>(METAPATH.c_str(), Hyprlang::SConfigOptions{});
+            meta->addConfigValue("hotspot_x", Hyprlang::FLOAT{0.F});
+            meta->addConfigValue("hotspot_y", Hyprlang::FLOAT{0.F});
+            meta->addConfigValue("resize_algorithm", Hyprlang::STRING{"nearest"});
+            meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
+            meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
+            meta->commence();
+            meta->parse();
+        } catch (const char* err) { return "failed parsing meta (" + METAPATH + "): " + std::string{err}; }
+
+        // check if we have at least one image.
+        for (auto& i : SHAPE.images) {
+            if (!std::filesystem::exists(dir.path().string() + "/" + i.filename))
+                return "meta invalid: image " + i.filename + " does not exist";
+            break;
+        }
+
+        if (SHAPE.images.empty())
+            return "meta invalid: no images for shape " + dir.path().stem().string();
+
+        SHAPE.directory  = dir.path().stem().string();
+        SHAPE.hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
+        SHAPE.hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
+        SHAPE.resizeAlgo = std::string{std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"))} == "nearest" ? RESIZE_NEAREST : RESIZE_BILINEAR;
+
+        std::cout << "Shape " << SHAPE.directory << ": \n\toverrides: " << SHAPE.overrides.size() << "\n\tsizes: " << SHAPE.images.size() << "\n";
+    }
+
+    // create output fs structure
+    if (!std::filesystem::exists(out))
+        std::filesystem::create_directory(out);
+    else {
+        // clear the entire thing, avoid melting themes together
+        std::filesystem::remove_all(out);
+        std::filesystem::create_directory(out);
+    }
+
+    // manifest is copied
+    std::filesystem::copy(MANIFESTPATH, out + "/manifest.hl");
+
+    // create subdir for cursors
+    std::filesystem::create_directory(out + "/" + CURSORSSUBDIR);
+
+    // create zips (.hlc) for each
+    for (auto& shape : currentTheme->shapes) {
+        const auto CURRENTCURSORSDIR = path + "/" + CURSORSSUBDIR + "/" + shape.directory;
+        const auto OUTPUTFILE        = out + "/" + CURSORSSUBDIR + "/" + shape.directory + ".hlc";
+        int        errp              = 0;
+        zip_t*     zip               = zip_open(OUTPUTFILE.c_str(), ZIP_CREATE | ZIP_EXCL, &errp);
+
+        if (!zip) {
+            zip_error_t ziperror;
+            zip_error_init_with_code(&ziperror, errp);
+            return "Failed to open " + OUTPUTFILE + " for writing: " + zip_error_strerror(&ziperror);
+        }
+
+        // add meta.hl
+        zip_source_t* meta = zip_source_file(zip, (CURRENTCURSORSDIR + "/meta.hl").c_str(), 0, 0);
+        if (!meta)
+            return "(1) failed to add meta " + (CURRENTCURSORSDIR + "/meta.hl") + " to hlc";
+        if (zip_file_add(zip, "meta.hl", meta, ZIP_FL_ENC_UTF_8) < 0)
+            return "(2) failed to add meta " + (CURRENTCURSORSDIR + "/meta.hl") + " to hlc";
+
+        meta = nullptr;
+
+        // add each cursor png
+        for (auto& i : shape.images) {
+            zip_source_t* image = zip_source_file(zip, (CURRENTCURSORSDIR + "/" + i.filename).c_str(), 0, 0);
+            if (!image)
+                return "(1) failed to add image " + (CURRENTCURSORSDIR + "/" + i.filename) + " to hlc";
+            if (zip_file_add(zip, (i.filename).c_str(), image, ZIP_FL_ENC_UTF_8) < 0)
+                return "(2) failed to add image " + i.filename + " to hlc";
+
+            std::cout << "Added image " << i.filename << " to shape " << shape.directory << "\n";
+        }
+
+        // close zip and write
+        if (zip_close(zip) < 0) {
+            zip_error_t ziperror;
+            zip_error_init_with_code(&ziperror, errp);
+            return "Failed to write " + OUTPUTFILE + ": " + zip_error_strerror(&ziperror);
+        }
+
+        std::cout << "Written " << OUTPUTFILE << "\n";
+    }
+
+    // done!
+    std::cout << "Done, written " << currentTheme->shapes.size() << " shapes.\n";
+
+    return {};
+}
+
+int main(int argc, char** argv, char** envp) {
+
+    if (argc < 2) {
+        std::cerr << "Not enough args.\n";
+        return 1;
+    }
+
+    eOperation  op   = OPERATION_CREATE;
+    std::string path = "", out = "";
+
+    for (size_t i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+
+        if (i == 1) {
+            // mode
+            if (arg == "--create" || arg == "-c") {
+                op = OPERATION_CREATE;
+
+                if (argc < 3) {
+                    std::cerr << "Missing path for create.\n";
+                    return 1;
+                }
+
+                path = argv[++i];
+            } else {
+                std::cerr << "Invalid mode.\n";
+                return 1;
+            }
+            continue;
+        }
+
+        if (arg == "-o" || arg == "--output") {
+            out = argv[++i];
+            continue;
+        } else {
+            std::cerr << "Unknown arg: " << arg << "\n";
+            return 1;
+        }
+    }
+
+    switch (op) {
+        case OPERATION_CREATE: {
+            const auto RET = createCursorThemeFromPath(path, out);
+            if (RET.has_value()) {
+                std::cerr << "Failed: " << RET.value() << "\n";
+                return 1;
+            }
+            break;
+        }
+        default: std::cerr << "Invalid mode.\n"; return 1;
+    }
+
+    return 0;
+}
