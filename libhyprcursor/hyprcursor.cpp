@@ -7,6 +7,7 @@
 #include <zip.h>
 #include <cstring>
 #include <algorithm>
+#include <librsvg/rsvg.h>
 
 #include "Log.hpp"
 
@@ -178,7 +179,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         // matched :)
         bool foundAny = false;
         for (auto& image : impl->loadedShapes[shape.get()].images) {
-            if (image->side != info.size)
+            if (image->side != info.size || (!image->artificial && shape->shapeType == SHAPE_SVG))
                 continue;
 
             // found size
@@ -186,7 +187,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
             foundAny = true;
         }
 
-        if (foundAny)
+        if (foundAny || shape->shapeType == SHAPE_SVG /* something broke, this shouldn't happen with svg */)
             break;
 
         // if we get here, means loadThemeStyle wasn't called most likely. If resize algo is specified, this is an error.
@@ -244,80 +245,122 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
 
 bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
     for (auto& shape : impl->theme.shapes) {
-        if (shape->resizeAlgo == RESIZE_NONE)
+        if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG)
             continue; // don't resample NONE style cursors
 
         bool sizeFound = false;
 
-        for (auto& image : impl->loadedShapes[shape.get()].images) {
-            if (image->side != info.size)
+        if (shape->shapeType == SHAPE_PNG) {
+            for (auto& image : impl->loadedShapes[shape.get()].images) {
+                if (image->side != info.size)
+                    continue;
+
+                sizeFound = true;
+                break;
+            }
+
+            if (sizeFound)
                 continue;
-
-            sizeFound = true;
-            break;
         }
-
-        if (sizeFound)
-            continue;
 
         // size wasn't found, let's resample.
-        SLoadedCursorImage* leader    = nullptr;
-        int                 leaderVal = 1000000;
-        for (auto& image : impl->loadedShapes[shape.get()].images) {
-            if (image->side < info.size)
-                continue;
-
-            if (image->side > leaderVal)
-                continue;
-
-            leaderVal = image->side;
-            leader    = image.get();
-        }
-
-        if (!leader) {
+        // if svg, render.
+        if (shape->shapeType == SHAPE_PNG) {
+            SLoadedCursorImage* leader    = nullptr;
+            int                 leaderVal = 1000000;
             for (auto& image : impl->loadedShapes[shape.get()].images) {
-                if (std::abs((int)(image->side - info.size)) > leaderVal)
+                if (image->side < info.size)
+                    continue;
+
+                if (image->side > leaderVal)
                     continue;
 
                 leaderVal = image->side;
                 leader    = image.get();
             }
-        }
 
-        if (!leader) {
-            Debug::log(ERR, "Resampling failed to find a candidate???");
+            if (!leader) {
+                for (auto& image : impl->loadedShapes[shape.get()].images) {
+                    if (std::abs((int)(image->side - info.size)) > leaderVal)
+                        continue;
+
+                    leaderVal = image->side;
+                    leader    = image.get();
+                }
+            }
+
+            if (!leader) {
+                Debug::log(ERR, "Resampling failed to find a candidate???");
+                return false;
+            }
+
+            auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
+            newImage->artificial     = true;
+            newImage->side           = info.size;
+            newImage->artificialData = new char[info.size * info.size * 4];
+            newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, info.size, info.size, info.size * 4);
+
+            const auto PCAIRO = cairo_create(newImage->cairoSurface);
+
+            cairo_set_antialias(PCAIRO, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+
+            cairo_save(PCAIRO);
+            cairo_set_operator(PCAIRO, CAIRO_OPERATOR_CLEAR);
+            cairo_paint(PCAIRO);
+            cairo_restore(PCAIRO);
+
+            const auto PTN = cairo_pattern_create_for_surface(leader->cairoSurface);
+            cairo_pattern_set_extend(PTN, CAIRO_EXTEND_NONE);
+            const float scale = info.size / (float)leader->side;
+            cairo_scale(PCAIRO, scale, scale);
+            cairo_pattern_set_filter(PTN, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
+            cairo_set_source(PCAIRO, PTN);
+
+            cairo_rectangle(PCAIRO, 0, 0, info.size, info.size);
+
+            cairo_fill(PCAIRO);
+            cairo_surface_flush(newImage->cairoSurface);
+
+            cairo_pattern_destroy(PTN);
+            cairo_destroy(PCAIRO);
+        } else if (shape->shapeType == SHAPE_SVG) {
+            const auto ORIGINALSVG = impl->loadedShapes[shape.get()].images[0].get();
+
+            auto&      newImage      = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
+            newImage->artificial     = true;
+            newImage->side           = info.size;
+            newImage->artificialData = new char[info.size * info.size * 4];
+            newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, info.size, info.size, info.size * 4);
+
+            const auto PCAIRO = cairo_create(newImage->cairoSurface);
+
+            cairo_save(PCAIRO);
+            cairo_set_operator(PCAIRO, CAIRO_OPERATOR_CLEAR);
+            cairo_paint(PCAIRO);
+            cairo_restore(PCAIRO);
+
+            GError*     error  = nullptr;
+            RsvgHandle* handle = rsvg_handle_new_from_data((unsigned char*)ORIGINALSVG->data, ORIGINALSVG->dataLen, &error);
+
+            if (!handle) {
+                Debug::log(ERR, "Failed reading svg: {}", error->message);
+                return false;
+            }
+
+            RsvgRectangle rect = {0, 0, (double)info.size, (double)info.size};
+
+            if (!rsvg_handle_render_document(handle, PCAIRO, &rect, &error)) {
+                Debug::log(ERR, "Failed rendering svg: {}", error->message);
+                return false;
+            }
+
+            // done
+            cairo_surface_flush(newImage->cairoSurface);
+            cairo_destroy(PCAIRO);
+        } else {
+            Debug::log(ERR, "Invalid shapetype in loadThemeStyle");
             return false;
         }
-
-        auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
-        newImage->artificial     = true;
-        newImage->side           = info.size;
-        newImage->artificialData = new char[info.size * info.size * 4];
-        newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, info.size, info.size, info.size * 4);
-
-        const auto PCAIRO = cairo_create(newImage->cairoSurface);
-
-        cairo_set_antialias(PCAIRO, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
-
-        cairo_save(PCAIRO);
-        cairo_set_operator(PCAIRO, CAIRO_OPERATOR_CLEAR);
-        cairo_paint(PCAIRO);
-        cairo_restore(PCAIRO);
-
-        const auto PTN = cairo_pattern_create_for_surface(leader->cairoSurface);
-        cairo_pattern_set_extend(PTN, CAIRO_EXTEND_NONE);
-        const float scale = info.size / (float)leader->side;
-        cairo_scale(PCAIRO, scale, scale);
-        cairo_pattern_set_filter(PTN, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
-        cairo_set_source(PCAIRO, PTN);
-
-        cairo_rectangle(PCAIRO, 0, 0, info.size, info.size);
-
-        cairo_fill(PCAIRO);
-        cairo_surface_flush(newImage->cairoSurface);
-
-        cairo_pattern_destroy(PTN);
-        cairo_destroy(PCAIRO);
     }
 
     return true;
@@ -431,7 +474,7 @@ static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int le
     if (DATA->readNeedle >= DATA->dataLen) {
         delete[] (char*)DATA->data;
         DATA->data = nullptr;
-        Debug::log(LOG, "cairo: png read, freeing mem");
+        Debug::log(TRACE, "cairo: png read, freeing mem");
     }
 
     return CAIRO_STATUS_SUCCESS;
@@ -510,8 +553,24 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         delete[] buffer;
 
         for (auto& i : SHAPE->images) {
+            if (SHAPE->shapeType == SHAPE_INVALID) {
+                if (i.filename.ends_with(".svg"))
+                    SHAPE->shapeType = SHAPE_SVG;
+                else if (i.filename.ends_with(".png"))
+                    SHAPE->shapeType = SHAPE_PNG;
+                else {
+                    std::cout << "WARNING: image " << i.filename << " has no known extension, assuming png.\n";
+                    SHAPE->shapeType = SHAPE_PNG;
+                }
+            } else {
+                if (SHAPE->shapeType == SHAPE_SVG && !i.filename.ends_with(".svg"))
+                    return "meta invalid: cannot add .png files to an svg shape";
+                else if (SHAPE->shapeType == SHAPE_PNG && i.filename.ends_with(".svg"))
+                    return "meta invalid: cannot add .svg files to a png shape";
+            }
+
             // load image
-            Debug::log(LOG, "Loading {} for shape {}", i.filename, cursor.path().stem().string());
+            Debug::log(TRACE, "Loading {} for shape {}", i.filename, cursor.path().stem().string());
             auto* IMAGE = LOADEDSHAPE.images.emplace_back(std::make_unique<SLoadedCursorImage>()).get();
             IMAGE->side = i.size;
 
@@ -526,16 +585,21 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
 
             zip_fclose(image_file);
 
-            Debug::log(LOG, "Cairo: set up surface read");
+            Debug::log(TRACE, "Cairo: set up surface read");
 
-            IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
+            if (SHAPE->shapeType == SHAPE_PNG) {
 
-            IMAGE->delay = i.delay;
+                IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
 
-            if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
-                delete[] (char*)IMAGE->data;
-                IMAGE->data = nullptr;
-                return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
+                IMAGE->delay = i.delay;
+
+                if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
+                    delete[] (char*)IMAGE->data;
+                    IMAGE->data = nullptr;
+                    return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
+                }
+            } else {
+                Debug::log(LOG, "Skipping cairo load for a svg surface");
             }
         }
 

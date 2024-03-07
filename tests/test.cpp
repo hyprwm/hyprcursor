@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     }
 
     // get cursor for left_ptr
-    const auto SHAPEDATA = mgr.getShape("wait", Hyprcursor::SCursorStyleInfo{.size = 48});
+    const auto SHAPEDATA = mgr.getShape("left_ptr", Hyprcursor::SCursorStyleInfo{.size = 48});
 
     if (SHAPEDATA.images.empty()) {
         std::cout << "no images\n";

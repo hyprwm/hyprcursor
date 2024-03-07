@@ -42,7 +42,7 @@ See `docs/`.
 
 Library:
  - [x] Support animated cursors
- - [ ] Support SVG cursors
+ - [x] Support SVG cursors
 
 Util:
  - [ ] Support compiling a theme with X
@@ -54,6 +54,7 @@ Util:
  - hyprlang >= 0.4.2
  - cairo
  - libzip
+ - librsvg
 
 ### Build
 ```sh

@@ -20,6 +20,7 @@ struct SLoadedCursorImage {
     size_t           readNeedle = 0;
     void*            data       = nullptr;
     size_t           dataLen    = 0;
+    bool isSVG = false; // if true, data is just a string of chars
 
     cairo_surface_t* cairoSurface = nullptr;
     int              side         = 0;

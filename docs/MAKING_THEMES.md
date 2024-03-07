@@ -71,4 +71,8 @@ define_size = 32, image32.png
 # define_size = 64, anim4.png, 500
 ```
 
-Supported cursor image types are png and soon svg.
+Supported cursor image types are png and svg.
+
+If you are using an svg cursor, the size parameter will be ignored. 
+
+Mixing png and svg cursor images in one shape will result in an error.

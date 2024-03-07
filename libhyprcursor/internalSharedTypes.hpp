@@ -9,6 +9,12 @@ enum eResizeAlgo {
     RESIZE_NEAREST  = 2,
 };
 
+enum eShapeType {
+    SHAPE_INVALID = 0,
+    SHAPE_PNG,
+    SHAPE_SVG,
+};
+
 inline eResizeAlgo stringToAlgo(const std::string& s) {
     if (s == "none")
         return RESIZE_NONE;
@@ -29,6 +35,7 @@ struct SCursorShape {
     eResizeAlgo               resizeAlgo = RESIZE_NEAREST;
     std::vector<SCursorImage> images;
     std::vector<std::string>  overrides;
+    eShapeType                shapeType = SHAPE_INVALID;
 };
 
 struct SCursorTheme {

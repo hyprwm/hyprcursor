@@ -141,6 +141,23 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
         // check if we have at least one image.
         for (auto& i : SHAPE->images) {
+
+            if (SHAPE->shapeType == SHAPE_INVALID) {
+                if (i.filename.ends_with(".svg"))
+                    SHAPE->shapeType = SHAPE_SVG;
+                else if (i.filename.ends_with(".png"))
+                    SHAPE->shapeType = SHAPE_PNG;
+                else {
+                    std::cout << "WARNING: image " << i.filename << " has no known extension, assuming png.\n";
+                    SHAPE->shapeType = SHAPE_PNG;
+                }
+            } else {
+                if (SHAPE->shapeType == SHAPE_SVG && !i.filename.ends_with(".svg"))
+                    return "meta invalid: cannot add .png files to an svg shape";
+                else if (SHAPE->shapeType == SHAPE_PNG && i.filename.ends_with(".svg"))
+                    return "meta invalid: cannot add .svg files to a png shape";
+            }
+
             if (!std::filesystem::exists(dir.path().string() + "/" + i.filename))
                 return "meta invalid: image " + i.filename + " does not exist";
             break;
