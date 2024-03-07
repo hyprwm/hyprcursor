@@ -2,8 +2,20 @@
 #include <zip.h>
 #include <optional>
 #include <filesystem>
+#include <array>
+#include <format>
 #include <hyprlang.hpp>
 #include "internalSharedTypes.hpp"
+
+enum eOperation {
+    OPERATION_CREATE  = 0,
+    OPERATION_EXTRACT = 1,
+};
+
+struct XCursorConfigEntry {
+    int         size = 0, hotspotX = 0, hotspotY = 0, delay = 0;
+    std::string image;
+};
 
 static std::string removeBeginEndSpacesTabs(std::string str) {
     if (str.empty())
@@ -62,7 +74,7 @@ static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
     return result;
 }
 
-std::optional<std::string> createCursorThemeFromPath(const std::string& path, const std::string& out_ = {}) {
+static std::optional<std::string> createCursorThemeFromPath(const std::string& path, const std::string& out_ = {}) {
     if (!std::filesystem::exists(path))
         return "input path does not exist";
 
@@ -76,6 +88,9 @@ std::optional<std::string> createCursorThemeFromPath(const std::string& path, co
     try {
         manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
         manifest->addConfigValue("cursors_directory", Hyprlang::STRING{""});
+        manifest->addConfigValue("name", Hyprlang::STRING{""});
+        manifest->addConfigValue("description", Hyprlang::STRING{""});
+        manifest->addConfigValue("version", Hyprlang::STRING{""});
         manifest->commence();
         manifest->parse();
     } catch (const char* err) { return "failed parsing manifest: " + std::string{err}; }
@@ -190,6 +205,156 @@ std::optional<std::string> createCursorThemeFromPath(const std::string& path, co
     return {};
 }
 
+static std::string spawnSync(const std::string& cmd) {
+    std::array<char, 128>                          buffer;
+    std::string                                    result;
+    const std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    if (!pipe)
+        return "";
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+
+static std::optional<std::string> extractXTheme(const std::string& xpath, const std::string& out_) {
+
+    if (!std::filesystem::exists(xpath) || !std::filesystem::exists(xpath + "/cursors"))
+        return "input path does not exist or is not an xcursor theme";
+
+    std::string out = out_.empty() ? xpath.substr(0, xpath.find_last_of('/') + 1) + "extracted/" : out_;
+
+    // create output fs structure
+    if (!std::filesystem::exists(out))
+        std::filesystem::create_directory(out);
+    else {
+        // clear the entire thing, avoid melting themes together
+        std::filesystem::remove_all(out);
+        std::filesystem::create_directory(out);
+    }
+
+    // write a boring manifest
+    std::ofstream manifest(out + "/manifest.hl", std::ios::trunc);
+    if (!manifest.good())
+        return "failed writing manifest";
+
+    manifest << "name = Extracted Theme\ndescription = Automatically extracted with hyprcursor-util\nversion = 0.1\ncursors_directory = hyprcursors\n";
+
+    manifest.close();
+
+    // make a cursors dir
+
+    std::filesystem::create_directory(out + "/hyprcursors/");
+
+    // create a temp extract dir
+    std::filesystem::create_directory("/tmp/hyprcursor-util/");
+
+    // write all cursors
+    for (auto& xcursor : std::filesystem::directory_iterator(xpath + "/cursors/")) {
+        // ignore symlinks, we'll write them to the meta.hl file.
+        if (!xcursor.is_regular_file() || xcursor.is_symlink())
+            continue;
+
+        const auto CURSORDIR = out + "/hyprcursors/" + xcursor.path().stem().string();
+        std::filesystem::create_directory(CURSORDIR);
+
+        std::cout << "Found xcursor " << xcursor.path().stem().string() << "\n";
+
+        // decompile xcursor
+        const auto OUT = spawnSync(
+            std::format("rm /tmp/hyprcursor-util/* && cd /tmp/hyprcursor-util && xcur2png {} -d /tmp/hyprcursor-util 2>&1", std::filesystem::canonical(xcursor.path()).string()));
+
+        // read the config
+        std::vector<XCursorConfigEntry> entries;
+        std::ifstream                   xconfig("/tmp/hyprcursor-util/" + xcursor.path().stem().string() + ".conf");
+        if (!xconfig.good())
+            return "Failed reading xconfig for " + xcursor.path().string();
+
+        std::string line = "";
+
+        while (std::getline(xconfig, line)) {
+            if (line.starts_with("#"))
+                continue;
+
+            auto& ENTRY = entries.emplace_back();
+
+            // extract
+            try {
+                std::string curval = line.substr(0, line.find_first_of('\t'));
+                ENTRY.size         = std::stoi(curval);
+                line               = line.substr(line.find_first_of('\t') + 1);
+
+                curval         = line.substr(0, line.find_first_of('\t'));
+                ENTRY.hotspotX = std::stoi(curval);
+                line           = line.substr(line.find_first_of('\t') + 1);
+
+                curval         = line.substr(0, line.find_first_of('\t'));
+                ENTRY.hotspotY = std::stoi(curval);
+                line           = line.substr(line.find_first_of('\t') + 1);
+
+                curval      = line.substr(0, line.find_first_of('\t'));
+                ENTRY.image = curval;
+                line        = line.substr(line.find_first_of('\t') + 1);
+
+                curval      = line.substr(0, line.find_first_of('\t'));
+                ENTRY.delay = std::stoi(curval);
+            } catch (std::exception& e) { return "Failed reading xconfig " + xcursor.path().string() + " because of " + e.what(); }
+
+            std::cout << "Extracted " << xcursor.path().stem().string() << " at size " << ENTRY.size << "\n";
+        }
+
+        if (entries.empty())
+            return "Empty xcursor " + xcursor.path().string();
+
+        // copy pngs
+        for (auto& extracted : std::filesystem::directory_iterator("/tmp/hyprcursor-util")) {
+            if (extracted.path().string().ends_with(".conf"))
+                continue;
+
+            std::filesystem::copy(extracted, CURSORDIR + "/");
+        }
+
+        // write a meta.hl
+        std::string metaString = "resize_algorithm = none\n";
+
+        // find hotspot from first entry
+        metaString +=
+            std::format("hotspot_x = {:.2f}\nhotspot_y = {:.2f}\n\n", (float)entries[0].hotspotX / (float)entries[0].size, (float)entries[0].hotspotY / (float)entries[0].size);
+
+        // define all sizes
+        for (auto& entry : entries) {
+            const auto ENTRYSTEM = entry.image.substr(entry.image.find_last_of('/') + 1);
+
+            metaString += std::format("define_size = {}, {}\n", entry.size, ENTRYSTEM);
+        }
+
+        metaString += "\n";
+
+        // define overrides, scan for symlinks
+
+        for (auto& xcursor2 : std::filesystem::directory_iterator(xpath + "/cursors/")) {
+            if (!xcursor2.is_symlink())
+                continue;
+
+            if (std::filesystem::canonical(xcursor2) != std::filesystem::canonical(xcursor))
+                continue;
+
+            // this sym points to us
+            metaString += std::format("define_override = {}\n", xcursor2.path().stem().string());
+        }
+
+        // meta done, write
+        std::ofstream meta(CURSORDIR + "/meta.hl", std::ios::trunc);
+        meta << metaString;
+        meta.close();
+    }
+
+    std::filesystem::remove_all("/tmp/hyprcursor-util/");
+
+    return {};
+}
+
 int main(int argc, char** argv, char** envp) {
 
     if (argc < 2) {
@@ -214,6 +379,15 @@ int main(int argc, char** argv, char** envp) {
                 }
 
                 path = argv[++i];
+            } else if (arg == "--extract" || arg == "-x") {
+                op = OPERATION_EXTRACT;
+
+                if (argc < 3) {
+                    std::cerr << "Missing path for extract.\n";
+                    return 1;
+                }
+
+                path = argv[++i];
             } else {
                 std::cerr << "Invalid mode.\n";
                 return 1;
@@ -230,9 +404,20 @@ int main(int argc, char** argv, char** envp) {
         }
     }
 
+    if (path.ends_with("/"))
+        path.pop_back();
+
     switch (op) {
         case OPERATION_CREATE: {
             const auto RET = createCursorThemeFromPath(path, out);
+            if (RET.has_value()) {
+                std::cerr << "Failed: " << RET.value() << "\n";
+                return 1;
+            }
+            break;
+        }
+        case OPERATION_EXTRACT: {
+            const auto RET = extractXTheme(path, out);
             if (RET.has_value()) {
                 std::cerr << "Failed: " << RET.value() << "\n";
                 return 1;

@@ -2,10 +2,6 @@
 #include <string>
 #include <vector>
 
-enum eOperation {
-    OPERATION_CREATE = 0,
-};
-
 enum eResizeAlgo {
     RESIZE_BILINEAR = 0,
     RESIZE_NEAREST  = 1,
