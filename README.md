@@ -39,3 +39,21 @@ Library:
 Util:
  - [ ] Support compiling a theme with X
  - [x] Support decompiling animated cursors
+
+## Building
+
+### Deps:
+ - hyprlang >= 0.4.2
+ - cairo
+ - libzip
+
+### Build
+```sh
+cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -S . -B ./build
+cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+```
+
+Install with:
+```sh
+sudo cmake --install build
+```
