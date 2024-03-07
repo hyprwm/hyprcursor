@@ -6,6 +6,9 @@ Familiarize yourself with the README of `hyprcursor-util`.
 
 Download an XCursor theme, extract it, and then use `--extract`, and then on the resulting output, `--create`.
 
+Before `--create`, you probably should walk through the `manifest.hl` and all the `meta.hl` files to make sure they're correct,
+and adjust them to your taste.
+
 ## Creating a theme from scratch
 
 The directory structure looks like this:
