@@ -136,7 +136,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         SHAPE.directory  = dir.path().stem().string();
         SHAPE.hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
         SHAPE.hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
-        SHAPE.resizeAlgo = std::string{std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"))} == "nearest" ? RESIZE_NEAREST : RESIZE_BILINEAR;
+        SHAPE.resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
 
         std::cout << "Shape " << SHAPE.directory << ": \n\toverrides: " << SHAPE.overrides.size() << "\n\tsizes: " << SHAPE.images.size() << "\n";
     }

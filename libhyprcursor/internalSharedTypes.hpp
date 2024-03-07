@@ -3,9 +3,18 @@
 #include <vector>
 
 enum eResizeAlgo {
-    RESIZE_BILINEAR = 0,
-    RESIZE_NEAREST  = 1,
+    RESIZE_NONE     = 0,
+    RESIZE_BILINEAR = 1,
+    RESIZE_NEAREST  = 2,
 };
+
+inline eResizeAlgo stringToAlgo(const std::string& s) {
+    if (s == "none")
+        return RESIZE_NONE;
+    if (s == "nearest")
+        return RESIZE_NEAREST;
+    return RESIZE_BILINEAR;
+}
 
 struct SCursorImage {
     std::string filename;

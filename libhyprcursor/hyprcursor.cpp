@@ -383,7 +383,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         SHAPE.directory  = cursor.path().stem().string();
         SHAPE.hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
         SHAPE.hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
-        SHAPE.resizeAlgo = std::string{std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"))} == "nearest" ? RESIZE_NEAREST : RESIZE_BILINEAR;
+        SHAPE.resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
 
         zip_discard(zip);
     }
