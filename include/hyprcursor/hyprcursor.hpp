@@ -20,7 +20,6 @@ namespace Hyprcursor {
         */
         unsigned int size = 0;
     };
-    
 
     /*!
         struct for cursor shape data
@@ -68,16 +67,18 @@ namespace Hyprcursor {
             The surfaces references stay valid until cursorSurfaceStyleDone() is called on the owning style.
         */
         SCursorShapeData getShape(const char* shape, const SCursorStyleInfo& info) {
-            int size = 0;
+            int                size   = 0;
             SCursorImageData** images = getShapesC(size, shape, info);
 
-            SCursorShapeData data;
+            SCursorShapeData   data;
 
             for (size_t i = 0; i < size; ++i) {
                 SCursorImageData image;
-                image.delay = images[i]->delay;
-                image.size = images[i]->size;
-                image.surface = images[i]->surface;
+                image.delay    = images[i]->delay;
+                image.size     = images[i]->size;
+                image.surface  = images[i]->surface;
+                image.hotspotX = images[i]->hotspotX;
+                image.hotspotY = images[i]->hotspotY;
                 data.images.push_back(image);
 
                 free(images[i]);
@@ -91,7 +92,7 @@ namespace Hyprcursor {
         /*!
             Prefer getShape, this is for C compat.
         */
-        SCursorImageData**         getShapesC(int& outSize, const char* shape_, const SCursorStyleInfo& info);
+        SCursorImageData** getShapesC(int& outSize, const char* shape_, const SCursorStyleInfo& info);
 
         /*!
             Marks a certain style as done, allowing it to be potentially freed

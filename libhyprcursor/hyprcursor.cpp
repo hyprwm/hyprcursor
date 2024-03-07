@@ -166,10 +166,14 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
     std::string                      REQUESTEDSHAPE = shape_;
 
     std::vector<SLoadedCursorImage*> resultingImages;
+    float                            hotX = 0, hotY = 0;
 
     for (auto& shape : impl->theme.shapes) {
         if (REQUESTEDSHAPE != shape->directory && std::find(shape->overrides.begin(), shape->overrides.end(), REQUESTEDSHAPE) == shape->overrides.end())
             continue;
+
+        hotX = shape->hotspotX;
+        hotY = shape->hotspotY;
 
         // matched :)
         bool foundAny = false;
@@ -225,10 +229,12 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
     // alloc and return what we need
     SCursorImageData** data = (SCursorImageData**)malloc(sizeof(SCursorImageData*) * resultingImages.size());
     for (size_t i = 0; i < resultingImages.size(); ++i) {
-        data[i]          = (SCursorImageData*)malloc(sizeof(SCursorImageData));
-        data[i]->delay   = resultingImages[i]->delay;
-        data[i]->size    = resultingImages[i]->side;
-        data[i]->surface = resultingImages[i]->cairoSurface;
+        data[i]           = (SCursorImageData*)malloc(sizeof(SCursorImageData));
+        data[i]->delay    = resultingImages[i]->delay;
+        data[i]->size     = resultingImages[i]->side;
+        data[i]->surface  = resultingImages[i]->cairoSurface;
+        data[i]->hotspotX = hotX * data[i]->size;
+        data[i]->hotspotY = hotY * data[i]->size;
     }
 
     outSize = resultingImages.size();
