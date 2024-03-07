@@ -19,6 +19,7 @@ inline eResizeAlgo stringToAlgo(const std::string& s) {
 struct SCursorImage {
     std::string filename;
     int         size = 0;
+    int         delay = 0;
 };
 
 struct SCursorShape {

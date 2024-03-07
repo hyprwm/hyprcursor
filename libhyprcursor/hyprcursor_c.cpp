@@ -23,11 +23,22 @@ int hyprcursor_load_theme_style(hyprcursor_manager_t* manager, hyprcursor_cursor
     return MGR->loadThemeStyle(info);
 }
 
-cairo_surface_t* hyprcursor_get_surface_for(hyprcursor_manager_t* manager, const char* shape, hyprcursor_cursor_style_info info_) {
+struct SCursorImageData** hyprcursor_get_cursor_image_data(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info_, int* out_size) {
     const auto       MGR = (CHyprcursorManager*)manager;
     SCursorStyleInfo info;
     info.size = info_.size;
-    return MGR->getSurfaceFor(shape, info);
+    int size = 0;
+    struct SCursorImageData** data = MGR->getShapesC(size, shape, info);
+    *out_size = size;
+    return data;
+}
+
+void hyprcursor_cursor_image_data_free(hyprcursor_cursor_image_data** data, int size) {
+    for (size_t i = 0; i < size; ++i) {
+        free(data[i]);
+    }
+
+    free(data);
 }
 
 void hyprcursor_style_done(hyprcursor_manager_t* manager, hyprcursor_cursor_style_info info_) {

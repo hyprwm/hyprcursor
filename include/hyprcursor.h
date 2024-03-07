@@ -12,7 +12,7 @@
 
 #endif
 
-#include <cairo/cairo.h>
+#include "shared.h"
 
 struct hyprcursor_manager_t;
 
@@ -62,12 +62,21 @@ CAPI int hyprcursor_manager_valid(struct hyprcursor_manager_t* manager);
 CAPI int hyprcursor_load_theme_style(struct hyprcursor_manager_t* manager, struct hyprcursor_cursor_style_info info);
 
 /*!
-    Returns a cairo_surface_t for a given cursor
+    Returns a hyprcursor_cursor_image_data*[] for a given cursor
     shape and size.
+
+    The entire array needs to be freed instantly after using, see hyprcursor_cursor_image_data_free()
+
+    Surfaces stay valid.
 
     Once done with a size, call hyprcursor_style_done()
 */
-CAPI cairo_surface_t* hyprcursor_get_surface_for(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info);
+CAPI hyprcursor_cursor_image_data** hyprcursor_get_cursor_image_data(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info, int* out_size);
+
+/*!
+    Free a returned hyprcursor_cursor_image_data.
+*/
+CAPI void hyprcursor_cursor_image_data_free(hyprcursor_cursor_image_data** data, int size);
 
 /*!
     Marks a certain style as done, allowing it to be potentially freed

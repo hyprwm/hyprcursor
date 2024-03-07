@@ -11,10 +11,13 @@ int main(int argc, char** argv) {
     }
 
     // get cursor for left_ptr
-    const auto ARROW = mgr.getSurfaceFor("left_ptr", Hyprcursor::SCursorStyleInfo{.size = 48});
+    const auto SHAPEDATA = mgr.getShape("left_ptr", Hyprcursor::SCursorStyleInfo{.size = 48});
+
+    if (SHAPEDATA.images.empty())   
+        return 1;
 
     // save to disk
-    const auto RET = cairo_surface_write_to_png(ARROW, "/tmp/arrow.png");
+    const auto RET = cairo_surface_write_to_png(SHAPEDATA.images[0].surface, "/tmp/arrow.png");
 
     std::cout << "Cairo returned for write: " << RET << "\n";
 

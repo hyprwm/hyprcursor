@@ -162,21 +162,28 @@ bool CHyprcursorManager::valid() {
     return finalizedAndValid;
 }
 
-cairo_surface_t* CHyprcursorManager::getSurfaceFor(const char* shape_, const SCursorStyleInfo& info) {
-    std::string REQUESTEDSHAPE = shape_;
+SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shape_, const SCursorStyleInfo& info) {
+    std::string                      REQUESTEDSHAPE = shape_;
+
+    std::vector<SLoadedCursorImage*> resultingImages;
 
     for (auto& shape : impl->theme.shapes) {
         if (REQUESTEDSHAPE != shape.directory && std::find(shape.overrides.begin(), shape.overrides.end(), REQUESTEDSHAPE) == shape.overrides.end())
             continue;
 
         // matched :)
+        bool foundAny = false;
         for (auto& image : impl->loadedShapes[&shape].images) {
             if (image->side != info.size)
                 continue;
 
             // found size
-            return image->cairoSurface;
+            resultingImages.push_back(image.get());
+            foundAny = true;
         }
+
+        if (foundAny)
+            break;
 
         // if we get here, means loadThemeStyle wasn't called most likely. If resize algo is specified, this is an error.
         if (shape.resizeAlgo != RESIZE_NONE) {
@@ -185,25 +192,48 @@ cairo_surface_t* CHyprcursorManager::getSurfaceFor(const char* shape_, const SCu
         }
 
         // find nearest
-        int                 leader    = 1337;
-        SLoadedCursorImage* leaderImg = nullptr;
+        int leader = 13371337;
         for (auto& image : impl->loadedShapes[&shape].images) {
             if (std::abs((int)(image->side - info.size)) > leader)
                 continue;
 
-            leaderImg = image.get();
-            leader    = image->side;
+            leader = image->side;
         }
 
-        if (!leaderImg) { // ???
+        if (leader == 13371337) { // ???
             Debug::log(ERR, "getSurfaceFor didn't match any nearest size?");
             return nullptr;
         }
 
-        return leaderImg->cairoSurface;
+        // we found nearest size
+        for (auto& image : impl->loadedShapes[&shape].images) {
+            if (image->side != leader)
+                continue;
+
+            // found size
+            resultingImages.push_back(image.get());
+            foundAny = true;
+        }
+
+        if (foundAny)
+            break;
+
+        Debug::log(ERR, "getSurfaceFor didn't match any nearest size (2)?");
+        return nullptr;
     }
 
-    return nullptr;
+    // alloc and return what we need
+    SCursorImageData** data = (SCursorImageData**)malloc(sizeof(SCursorImageData*) * resultingImages.size());
+    for (size_t i = 0; i < resultingImages.size(); ++i) {
+        data[i] = (SCursorImageData*)malloc(sizeof(SCursorImageData));
+        data[i]->delay = resultingImages[i]->delay;
+        data[i]->size = resultingImages[i]->side;
+        data[i]->surface = resultingImages[i]->cairoSurface;
+    }
+
+    outSize = resultingImages.size();
+
+    return data;
 }
 
 bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {

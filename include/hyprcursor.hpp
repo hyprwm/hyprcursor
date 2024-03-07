@@ -1,6 +1,9 @@
 #pragma once
 
-#include <cairo/cairo.h>
+#include <vector>
+#include <stdlib.h>
+
+#include "shared.h"
 
 class CHyprcursorImplementation;
 
@@ -16,6 +19,14 @@ namespace Hyprcursor {
             0 means "any" or "unspecified".
         */
         unsigned int size = 0;
+    };
+    
+
+    /*!
+        struct for cursor shape data
+    */
+    struct SCursorShapeData {
+        std::vector<SCursorImageData> images;
     };
 
     /*!
@@ -49,12 +60,38 @@ namespace Hyprcursor {
         bool loadThemeStyle(const SCursorStyleInfo& info);
 
         /*!
-            Returns a cairo_surface_t for a given cursor
-            shape and size.
+            Returns the shape data struct for a given
+            style.
 
-            Once done with a size, call cursorSurfaceDone()
+            Once done with a style, call cursorSurfaceDone()
+
+            The surfaces references stay valid until cursorSurfaceStyleDone() is called on the owning style.
         */
-        cairo_surface_t* getSurfaceFor(const char* shape, const SCursorStyleInfo& info);
+        SCursorShapeData getShape(const char* shape, const SCursorStyleInfo& info) {
+            int size = 0;
+            SCursorImageData** images = getShapesC(size, shape, info);
+
+            SCursorShapeData data;
+
+            for (size_t i = 0; i < size; ++i) {
+                SCursorImageData image;
+                image.delay = images[i]->delay;
+                image.size = images[i]->size;
+                image.surface = images[i]->surface;
+                data.images.push_back(image);
+
+                free(images[i]);
+            }
+
+            free(images);
+
+            return data;
+        }
+
+        /*!
+            Prefer getShape, this is for C compat.
+        */
+        SCursorImageData**         getShapesC(int& outSize, const char* shape_, const SCursorStyleInfo& info);
 
         /*!
             Marks a certain style as done, allowing it to be potentially freed

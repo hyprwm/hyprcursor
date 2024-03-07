@@ -16,13 +16,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    cairo_surface_t* surf = hyprcursor_get_surface_for(mgr, "left_ptr", info);
-    if (surf == NULL) {
-        printf("surf failed\n");
+    int dataSize = 0;
+    hyprcursor_cursor_image_data** data = hyprcursor_get_cursor_image_data(mgr, "left_ptr", info, &dataSize);
+    if (data == NULL) {
+        printf("data failed\n");
         return 1;
     }
 
-    int ret = cairo_surface_write_to_png(surf, "/tmp/arrowC.png");
+    int ret = cairo_surface_write_to_png(data[0]->surface, "/tmp/arrowC.png");
+
+    hyprcursor_cursor_image_data_free(data, dataSize);
 
     if (ret) {
         printf("cairo failed\n");
