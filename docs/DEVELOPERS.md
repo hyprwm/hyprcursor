@@ -9,3 +9,7 @@ Have fun :)
 Doxygen soon I hope :P
 
 All props exposed are also explained in MAKING_THEMES.md
+
+## Examples
+
+See `tests/`.
