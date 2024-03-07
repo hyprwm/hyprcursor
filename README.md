@@ -34,6 +34,10 @@ It provides C and C++ bindings.
 
 For both C and C++, see `tests/`.
 
+## Docs
+
+See `docs/`.
+
 ## TODO
 
 Library:
