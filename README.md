@@ -38,4 +38,4 @@ Library:
 
 Util:
  - [ ] Support compiling a theme with X
- - [ ] Support decompiling animated cursors
+ - [x] Support decompiling animated cursors
