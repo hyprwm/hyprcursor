@@ -30,6 +30,10 @@ The library to use for implementing hyprcursors in your compositor or app.
 
 It provides C and C++ bindings.
 
+### Examples
+
+For both C and C++, see `tests/`.
+
 ## TODO
 
 Library:
