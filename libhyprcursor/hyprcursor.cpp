@@ -162,7 +162,7 @@ bool CHyprcursorManager::valid() {
     return finalizedAndValid;
 }
 
-cairo_surface_t* CHyprcursorManager::getSurfaceFor(const char* shape_, const SCursorSurfaceInfo& info) {
+cairo_surface_t* CHyprcursorManager::getSurfaceFor(const char* shape_, const SCursorStyleInfo& info) {
     std::string REQUESTEDSHAPE = shape_;
 
     for (auto& shape : impl->theme.shapes) {
@@ -174,18 +174,129 @@ cairo_surface_t* CHyprcursorManager::getSurfaceFor(const char* shape_, const SCu
             if (image->side != info.size)
                 continue;
 
-            // found pixel-perfect size
+            // found size
             return image->cairoSurface;
         }
 
-        // TODO: resampling
+        // if we get here, means loadThemeStyle wasn't called most likely. If resize algo is specified, this is an error.
+        if (shape.resizeAlgo != RESIZE_NONE) {
+            Debug::log(ERR, "getSurfaceFor didn't match a size?");
+            return nullptr;
+        }
+
+        // find nearest
+        int                 leader    = 1337;
+        SLoadedCursorImage* leaderImg = nullptr;
+        for (auto& image : impl->loadedShapes[&shape].images) {
+            if (std::abs((int)(image->side - info.size)) > leader)
+                continue;
+
+            leaderImg = image.get();
+            leader    = image->side;
+        }
+
+        if (!leaderImg) { // ???
+            Debug::log(ERR, "getSurfaceFor didn't match any nearest size?");
+            return nullptr;
+        }
+
+        return leaderImg->cairoSurface;
     }
+
     return nullptr;
 }
 
-void CHyprcursorManager::cursorSurfaceDone(cairo_surface_t* surface) {
-    ;
-    // TODO: when resampling.
+bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
+    for (auto& shape : impl->theme.shapes) {
+        if (shape.resizeAlgo == RESIZE_NONE)
+            continue; // don't resample NONE style cursors
+
+        bool sizeFound = false;
+
+        for (auto& image : impl->loadedShapes[&shape].images) {
+            if (image->side != info.size)
+                continue;
+
+            sizeFound = true;
+            break;
+        }
+
+        if (sizeFound)
+            continue;
+
+        // size wasn't found, let's resample.
+        SLoadedCursorImage* leader    = nullptr;
+        int                 leaderVal = 1000000;
+        for (auto& image : impl->loadedShapes[&shape].images) {
+            if (image->side < info.size)
+                continue;
+
+            if (image->side > leaderVal)
+                continue;
+
+            leaderVal = image->side;
+            leader    = image.get();
+        }
+
+        if (!leader) {
+            for (auto& image : impl->loadedShapes[&shape].images) {
+                if (image->side < info.size)
+                    continue;
+
+                if (std::abs((int)(image->side - info.size)) > leaderVal)
+                    continue;
+
+                leaderVal = image->side;
+                leader    = image.get();
+            }
+        }
+
+        if (!leader) {
+            Debug::log(ERR, "Resampling failed to find a candidate???");
+            return false;
+        }
+
+        auto& newImage           = impl->loadedShapes[&shape].images.emplace_back(std::make_unique<SLoadedCursorImage>());
+        newImage->artificial     = true;
+        newImage->side           = info.size;
+        newImage->artificialData = new char[info.size * info.size * 4];
+        newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, info.size, info.size, info.size * 4);
+
+        const auto PCAIRO = cairo_create(newImage->cairoSurface);
+
+        cairo_set_antialias(PCAIRO, shape.resizeAlgo == RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+
+        cairo_save(PCAIRO);
+        cairo_set_operator(PCAIRO, CAIRO_OPERATOR_CLEAR);
+        cairo_paint(PCAIRO);
+        cairo_restore(PCAIRO);
+
+        const auto PTN = cairo_pattern_create_for_surface(leader->cairoSurface);
+        cairo_pattern_set_extend(PTN, CAIRO_EXTEND_NONE);
+        const float scale = info.size / (float)leader->side;
+        cairo_scale(PCAIRO, scale, scale);
+        cairo_pattern_set_filter(PTN, shape.resizeAlgo == RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
+        cairo_set_source(PCAIRO, PTN);
+
+        cairo_rectangle(PCAIRO, 0, 0, info.size, info.size);
+
+        cairo_fill(PCAIRO);
+        cairo_surface_flush(newImage->cairoSurface);
+
+        cairo_pattern_destroy(PTN);
+        cairo_destroy(PCAIRO);
+    }
+
+    return true;
+}
+
+void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
+    for (auto& shape : impl->theme.shapes) {
+        if (shape.resizeAlgo == RESIZE_NONE)
+            continue;
+
+        std::erase_if(impl->loadedShapes[&shape].images, [info](const auto& e) { return !e->artificial && (info.size == 0 || e->side == info.size); });
+    }
 }
 
 /*

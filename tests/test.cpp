@@ -5,8 +5,14 @@
 int main(int argc, char** argv) {
     Hyprcursor::CHyprcursorManager mgr(nullptr);
 
-    // get cursor for arrow
-    const auto ARROW = mgr.getSurfaceFor("arrow", Hyprcursor::SCursorSurfaceInfo{.size = 64});
+    // preload size 48 for testing
+    if (!mgr.loadThemeStyle(Hyprcursor::SCursorStyleInfo{.size = 48})) {
+        std::cout << "failed loading style\n";
+        return 1;
+    }
+
+    // get cursor for left_ptr
+    const auto ARROW = mgr.getSurfaceFor("left_ptr", Hyprcursor::SCursorStyleInfo{.size = 48});
 
     // save to disk
     const auto RET = cairo_surface_write_to_png(ARROW, "/tmp/arrow.png");

@@ -10,6 +10,10 @@ struct SLoadedCursorImage {
     ~SLoadedCursorImage() {
         if (data)
             delete[] (char*)data;
+        if (artificialData)
+            delete[] (char*)artificialData;
+        if (cairoSurface)
+            cairo_surface_destroy(cairoSurface);
     }
 
     // read stuff
@@ -19,6 +23,10 @@ struct SLoadedCursorImage {
 
     cairo_surface_t* cairoSurface = nullptr;
     int              side         = 0;
+
+    // means this was created by resampling
+    void* artificialData = nullptr;
+    bool  artificial     = false;
 };
 
 struct SLoadedCursorShape {

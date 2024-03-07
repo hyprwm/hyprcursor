@@ -7,11 +7,13 @@ class CHyprcursorImplementation;
 namespace Hyprcursor {
 
     /*!
-        Simple struct for some info about shape requests
+        Simple struct for styles
     */
-    struct SCursorSurfaceInfo {
+    struct SCursorStyleInfo {
         /*
-            Shape size
+            Shape size.
+
+            0 means "any" or "unspecified".
         */
         unsigned int size = 0;
     };
@@ -40,19 +42,22 @@ namespace Hyprcursor {
         bool valid();
 
         /*!
+            Loads this theme at a given style, synchronously.
+        */
+        bool loadThemeStyle(const SCursorStyleInfo& info);
+
+        /*!
             Returns a cairo_surface_t for a given cursor
             shape and size.
 
-            Once done, call cursorSurfaceDone()
+            Once done with a size, call cursorSurfaceDone()
         */
-        cairo_surface_t* getSurfaceFor(const char* shape, const SCursorSurfaceInfo& info);
+        cairo_surface_t* getSurfaceFor(const char* shape, const SCursorStyleInfo& info);
 
         /*!
-            Marks a surface as done, meaning ready to be freed.
-
-            Always call after using a surface.
+            Marks a certain style as done, allowing it to be potentially freed
         */
-        void cursorSurfaceDone(cairo_surface_t* surface);
+        void cursorSurfaceStyleDone(const SCursorStyleInfo&);
 
       private:
         CHyprcursorImplementation* impl              = nullptr;

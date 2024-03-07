@@ -262,8 +262,8 @@ static std::optional<std::string> extractXTheme(const std::string& xpath, const 
         std::cout << "Found xcursor " << xcursor.path().stem().string() << "\n";
 
         // decompile xcursor
-        const auto OUT = spawnSync(
-            std::format("rm /tmp/hyprcursor-util/* && cd /tmp/hyprcursor-util && xcur2png {} -d /tmp/hyprcursor-util 2>&1", std::filesystem::canonical(xcursor.path()).string()));
+        const auto OUT = spawnSync(std::format("rm -f /tmp/hyprcursor-util/* && cd /tmp/hyprcursor-util && xcur2png {} -d /tmp/hyprcursor-util 2>&1",
+                                               std::filesystem::canonical(xcursor.path()).string()));
 
         // read the config
         std::vector<XCursorConfigEntry> entries;
