@@ -12,7 +12,20 @@
 
 #endif
 
+#include <cairo/cairo.h>
+
 struct hyprcursor_manager_t;
+
+/*!
+    Simple struct for styles
+*/
+struct hyprcursor_cursor_style_info {
+    /*!
+        Shape size.
+        0 means "any" or "unspecified".
+    */
+    unsigned int size;
+};
 
 /*!
     Basic Hyprcursor manager.
@@ -28,17 +41,37 @@ struct hyprcursor_manager_t;
 
     The caller gets the ownership, call hyprcursor_manager_free to free this object.
 */
-CAPI hyprcursor_manager_t* hyprcursor_manager_create(const char* theme_name);
+CAPI struct hyprcursor_manager_t* hyprcursor_manager_create(const char* theme_name);
 
 /*!
     Free a hyprcursor_manager_t*
 */
-CAPI void hyprcursor_manager_free(hyprcursor_manager_t* manager);
+CAPI void hyprcursor_manager_free(struct hyprcursor_manager_t* manager);
 
 /*!
     Returns true if the theme was successfully loaded,
     i.e. everything is A-OK and nothing should fail.
 */
-CAPI bool hyprcursor_manager_valid(hyprcursor_manager_t* manager);
+CAPI int hyprcursor_manager_valid(struct hyprcursor_manager_t* manager);
+
+/*!
+    Loads a theme at a given style, synchronously.
+
+    Returns whether it succeeded.
+*/
+CAPI int hyprcursor_load_theme_style(struct hyprcursor_manager_t* manager, struct hyprcursor_cursor_style_info info);
+
+/*!
+    Returns a cairo_surface_t for a given cursor
+    shape and size.
+
+    Once done with a size, call hyprcursor_style_done()
+*/
+CAPI cairo_surface_t* hyprcursor_get_surface_for(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info);
+
+/*!
+    Marks a certain style as done, allowing it to be potentially freed
+*/
+CAPI void hyprcursor_style_done(struct hyprcursor_manager_t* manager, struct hyprcursor_cursor_style_info info);
 
 #endif

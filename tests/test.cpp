@@ -1,6 +1,5 @@
 #include <iostream>
 #include <hyprcursor.hpp>
-#include <cairo/cairo.h>
 
 int main(int argc, char** argv) {
     Hyprcursor::CHyprcursorManager mgr(nullptr);
@@ -18,6 +17,9 @@ int main(int argc, char** argv) {
     const auto RET = cairo_surface_write_to_png(ARROW, "/tmp/arrow.png");
 
     std::cout << "Cairo returned for write: " << RET << "\n";
+
+    if (RET)
+        return 1;
 
     return !mgr.valid();
 }

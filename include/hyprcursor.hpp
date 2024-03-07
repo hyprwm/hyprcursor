@@ -10,7 +10,7 @@ namespace Hyprcursor {
         Simple struct for styles
     */
     struct SCursorStyleInfo {
-        /*
+        /*!
             Shape size.
 
             0 means "any" or "unspecified".
@@ -43,6 +43,8 @@ namespace Hyprcursor {
 
         /*!
             Loads this theme at a given style, synchronously.
+
+            Returns whether it succeeded.
         */
         bool loadThemeStyle(const SCursorStyleInfo& info);
 

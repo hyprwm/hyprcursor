@@ -61,8 +61,13 @@ add_custom_target(tests)
 
 add_executable(hyprcursor_test "tests/test.cpp")
 target_link_libraries(hyprcursor_test PRIVATE hyprcursor)
-add_test(NAME "Test libhyprcursor" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test)
+add_test(NAME "Test libhyprcursor in C++" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test)
 add_dependencies(tests hyprcursor_test)
+
+add_executable(hyprcursor_test_c "tests/test.c")
+target_link_libraries(hyprcursor_test_c PRIVATE hyprcursor)
+add_test(NAME "Test libhyprcursor in C" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test_c)
+add_dependencies(tests hyprcursor_test_c)
 
 # Installation
 install(TARGETS hyprcursor
