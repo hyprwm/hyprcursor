@@ -15,7 +15,7 @@ doesn't suck as much.
 
 ### Notable advantages over XCursor
  - Automatic scaling according to a configurable, per-cursor method.
- - Support for SVG cursors (soon, see todo)
+ - Support for SVG cursors
  - Way more space-efficient. As an example, Bibata-XCursor is 44.1MB, while it's 6.6MB in hyprcursor.
 
 ## Tools
