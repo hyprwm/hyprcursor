@@ -33,7 +33,7 @@ It provides C and C++ bindings.
 ## TODO
 
 Library:
- - [ ] Support animated cursors
+ - [x] Support animated cursors
  - [ ] Support SVG cursors
 
 Util:

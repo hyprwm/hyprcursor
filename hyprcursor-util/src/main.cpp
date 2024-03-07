@@ -47,10 +47,26 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         return result;
     }
 
-    const auto   LHS = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
-    const auto   RHS = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
+    auto         LHS   = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
+    auto         RHS   = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
+    auto         DELAY = 0;
 
     SCursorImage image;
+
+    if (RHS.contains(",")) {
+        const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
+        const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
+
+        try {
+            image.delay = std::stoull(RR);
+        } catch (std::exception& e) {
+            result.setError(e.what());
+            return result;
+        }
+
+        RHS = LL;
+    }
+
     image.filename = RHS;
 
     try {
@@ -60,7 +76,7 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         return result;
     }
 
-    currentTheme->shapes.back().images.push_back(image);
+    currentTheme->shapes.back()->images.push_back(image);
 
     return result;
 }
@@ -69,7 +85,7 @@ static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
     Hyprlang::CParseResult result;
     const std::string      VALUE = V;
 
-    currentTheme->shapes.back().overrides.push_back(V);
+    currentTheme->shapes.back()->overrides.push_back(V);
 
     return result;
 }
@@ -107,7 +123,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
     for (auto& dir : std::filesystem::directory_iterator(CURSORDIR)) {
         const auto METAPATH = dir.path().string() + "/meta.hl";
 
-        auto&      SHAPE = currentTheme->shapes.emplace_back();
+        auto&      SHAPE = currentTheme->shapes.emplace_back(std::make_unique<SCursorShape>());
 
         //
         std::unique_ptr<Hyprlang::CConfig> meta;
@@ -124,21 +140,21 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         } catch (const char* err) { return "failed parsing meta (" + METAPATH + "): " + std::string{err}; }
 
         // check if we have at least one image.
-        for (auto& i : SHAPE.images) {
+        for (auto& i : SHAPE->images) {
             if (!std::filesystem::exists(dir.path().string() + "/" + i.filename))
                 return "meta invalid: image " + i.filename + " does not exist";
             break;
         }
 
-        if (SHAPE.images.empty())
+        if (SHAPE->images.empty())
             return "meta invalid: no images for shape " + dir.path().stem().string();
 
-        SHAPE.directory  = dir.path().stem().string();
-        SHAPE.hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
-        SHAPE.hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
-        SHAPE.resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
+        SHAPE->directory  = dir.path().stem().string();
+        SHAPE->hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
+        SHAPE->hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
+        SHAPE->resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
 
-        std::cout << "Shape " << SHAPE.directory << ": \n\toverrides: " << SHAPE.overrides.size() << "\n\tsizes: " << SHAPE.images.size() << "\n";
+        std::cout << "Shape " << SHAPE->directory << ": \n\toverrides: " << SHAPE->overrides.size() << "\n\tsizes: " << SHAPE->images.size() << "\n";
     }
 
     // create output fs structure
@@ -158,8 +174,8 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
     // create zips (.hlc) for each
     for (auto& shape : currentTheme->shapes) {
-        const auto CURRENTCURSORSDIR = path + "/" + CURSORSSUBDIR + "/" + shape.directory;
-        const auto OUTPUTFILE        = out + "/" + CURSORSSUBDIR + "/" + shape.directory + ".hlc";
+        const auto CURRENTCURSORSDIR = path + "/" + CURSORSSUBDIR + "/" + shape->directory;
+        const auto OUTPUTFILE        = out + "/" + CURSORSSUBDIR + "/" + shape->directory + ".hlc";
         int        errp              = 0;
         zip_t*     zip               = zip_open(OUTPUTFILE.c_str(), ZIP_CREATE | ZIP_EXCL, &errp);
 
@@ -179,14 +195,14 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         meta = nullptr;
 
         // add each cursor png
-        for (auto& i : shape.images) {
+        for (auto& i : shape->images) {
             zip_source_t* image = zip_source_file(zip, (CURRENTCURSORSDIR + "/" + i.filename).c_str(), 0, 0);
             if (!image)
                 return "(1) failed to add image " + (CURRENTCURSORSDIR + "/" + i.filename) + " to hlc";
             if (zip_file_add(zip, (i.filename).c_str(), image, ZIP_FL_ENC_UTF_8) < 0)
                 return "(2) failed to add image " + i.filename + " to hlc";
 
-            std::cout << "Added image " << i.filename << " to shape " << shape.directory << "\n";
+            std::cout << "Added image " << i.filename << " to shape " << shape->directory << "\n";
         }
 
         // close zip and write
@@ -326,7 +342,7 @@ static std::optional<std::string> extractXTheme(const std::string& xpath, const 
         for (auto& entry : entries) {
             const auto ENTRYSTEM = entry.image.substr(entry.image.find_last_of('/') + 1);
 
-            metaString += std::format("define_size = {}, {}\n", entry.size, ENTRYSTEM);
+            metaString += std::format("define_size = {}, {}, {}\n", entry.size, ENTRYSTEM, entry.delay);
         }
 
         metaString += "\n";

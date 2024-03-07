@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <memory>
 
 enum eResizeAlgo {
     RESIZE_NONE     = 0,
@@ -18,7 +19,7 @@ inline eResizeAlgo stringToAlgo(const std::string& s) {
 
 struct SCursorImage {
     std::string filename;
-    int         size = 0;
+    int         size  = 0;
     int         delay = 0;
 };
 
@@ -31,5 +32,5 @@ struct SCursorShape {
 };
 
 struct SCursorTheme {
-    std::vector<SCursorShape> shapes;
+    std::vector<std::unique_ptr<SCursorShape>> shapes;
 };

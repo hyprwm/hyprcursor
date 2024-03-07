@@ -168,12 +168,12 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
     std::vector<SLoadedCursorImage*> resultingImages;
 
     for (auto& shape : impl->theme.shapes) {
-        if (REQUESTEDSHAPE != shape.directory && std::find(shape.overrides.begin(), shape.overrides.end(), REQUESTEDSHAPE) == shape.overrides.end())
+        if (REQUESTEDSHAPE != shape->directory && std::find(shape->overrides.begin(), shape->overrides.end(), REQUESTEDSHAPE) == shape->overrides.end())
             continue;
 
         // matched :)
         bool foundAny = false;
-        for (auto& image : impl->loadedShapes[&shape].images) {
+        for (auto& image : impl->loadedShapes[shape.get()].images) {
             if (image->side != info.size)
                 continue;
 
@@ -186,14 +186,14 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
             break;
 
         // if we get here, means loadThemeStyle wasn't called most likely. If resize algo is specified, this is an error.
-        if (shape.resizeAlgo != RESIZE_NONE) {
+        if (shape->resizeAlgo != RESIZE_NONE) {
             Debug::log(ERR, "getSurfaceFor didn't match a size?");
             return nullptr;
         }
 
         // find nearest
         int leader = 13371337;
-        for (auto& image : impl->loadedShapes[&shape].images) {
+        for (auto& image : impl->loadedShapes[shape.get()].images) {
             if (std::abs((int)(image->side - info.size)) > leader)
                 continue;
 
@@ -206,7 +206,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         }
 
         // we found nearest size
-        for (auto& image : impl->loadedShapes[&shape].images) {
+        for (auto& image : impl->loadedShapes[shape.get()].images) {
             if (image->side != leader)
                 continue;
 
@@ -225,9 +225,9 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
     // alloc and return what we need
     SCursorImageData** data = (SCursorImageData**)malloc(sizeof(SCursorImageData*) * resultingImages.size());
     for (size_t i = 0; i < resultingImages.size(); ++i) {
-        data[i] = (SCursorImageData*)malloc(sizeof(SCursorImageData));
-        data[i]->delay = resultingImages[i]->delay;
-        data[i]->size = resultingImages[i]->side;
+        data[i]          = (SCursorImageData*)malloc(sizeof(SCursorImageData));
+        data[i]->delay   = resultingImages[i]->delay;
+        data[i]->size    = resultingImages[i]->side;
         data[i]->surface = resultingImages[i]->cairoSurface;
     }
 
@@ -238,12 +238,12 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
 
 bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
     for (auto& shape : impl->theme.shapes) {
-        if (shape.resizeAlgo == RESIZE_NONE)
+        if (shape->resizeAlgo == RESIZE_NONE)
             continue; // don't resample NONE style cursors
 
         bool sizeFound = false;
 
-        for (auto& image : impl->loadedShapes[&shape].images) {
+        for (auto& image : impl->loadedShapes[shape.get()].images) {
             if (image->side != info.size)
                 continue;
 
@@ -257,7 +257,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
         // size wasn't found, let's resample.
         SLoadedCursorImage* leader    = nullptr;
         int                 leaderVal = 1000000;
-        for (auto& image : impl->loadedShapes[&shape].images) {
+        for (auto& image : impl->loadedShapes[shape.get()].images) {
             if (image->side < info.size)
                 continue;
 
@@ -269,10 +269,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
         }
 
         if (!leader) {
-            for (auto& image : impl->loadedShapes[&shape].images) {
-                if (image->side < info.size)
-                    continue;
-
+            for (auto& image : impl->loadedShapes[shape.get()].images) {
                 if (std::abs((int)(image->side - info.size)) > leaderVal)
                     continue;
 
@@ -286,7 +283,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
             return false;
         }
 
-        auto& newImage           = impl->loadedShapes[&shape].images.emplace_back(std::make_unique<SLoadedCursorImage>());
+        auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
         newImage->artificial     = true;
         newImage->side           = info.size;
         newImage->artificialData = new char[info.size * info.size * 4];
@@ -294,7 +291,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
         const auto PCAIRO = cairo_create(newImage->cairoSurface);
 
-        cairo_set_antialias(PCAIRO, shape.resizeAlgo == RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+        cairo_set_antialias(PCAIRO, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
 
         cairo_save(PCAIRO);
         cairo_set_operator(PCAIRO, CAIRO_OPERATOR_CLEAR);
@@ -305,7 +302,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
         cairo_pattern_set_extend(PTN, CAIRO_EXTEND_NONE);
         const float scale = info.size / (float)leader->side;
         cairo_scale(PCAIRO, scale, scale);
-        cairo_pattern_set_filter(PTN, shape.resizeAlgo == RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
+        cairo_pattern_set_filter(PTN, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
         cairo_set_source(PCAIRO, PTN);
 
         cairo_rectangle(PCAIRO, 0, 0, info.size, info.size);
@@ -322,10 +319,10 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
 void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
     for (auto& shape : impl->theme.shapes) {
-        if (shape.resizeAlgo == RESIZE_NONE)
+        if (shape->resizeAlgo == RESIZE_NONE)
             continue;
 
-        std::erase_if(impl->loadedShapes[&shape].images, [info](const auto& e) { return !e->artificial && (info.size == 0 || e->side == info.size); });
+        std::erase_if(impl->loadedShapes[shape.get()].images, [info](const auto& e) { return !e->artificial && (info.size == 0 || e->side == info.size); });
     }
 }
 
@@ -365,10 +362,26 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         return result;
     }
 
-    const auto   LHS = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
-    const auto   RHS = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
+    auto         LHS   = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
+    auto         RHS   = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
+    auto         DELAY = 0;
 
     SCursorImage image;
+
+    if (RHS.contains(",")) {
+        const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
+        const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
+
+        try {
+            image.delay = std::stoull(RR);
+        } catch (std::exception& e) {
+            result.setError(e.what());
+            return result;
+        }
+
+        RHS = LL;
+    }
+
     image.filename = RHS;
 
     try {
@@ -378,7 +391,7 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         return result;
     }
 
-    currentTheme->shapes.back().images.push_back(image);
+    currentTheme->shapes.back()->images.push_back(image);
 
     return result;
 }
@@ -387,7 +400,7 @@ static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
     Hyprlang::CParseResult result;
     const std::string      VALUE = V;
 
-    currentTheme->shapes.back().overrides.push_back(V);
+    currentTheme->shapes.back()->overrides.push_back(V);
 
     return result;
 }
@@ -451,8 +464,8 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         if (!cursor.is_regular_file())
             continue;
 
-        auto& SHAPE       = theme.shapes.emplace_back();
-        auto& LOADEDSHAPE = loadedShapes[&SHAPE];
+        auto& SHAPE       = theme.shapes.emplace_back(std::make_unique<SCursorShape>());
+        auto& LOADEDSHAPE = loadedShapes[SHAPE.get()];
 
         // extract zip to raw data.
         int         errp = 0;
@@ -490,7 +503,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
 
         delete[] buffer;
 
-        for (auto& i : SHAPE.images) {
+        for (auto& i : SHAPE->images) {
             // load image
             Debug::log(LOG, "Loading {} for shape {}", i.filename, cursor.path().stem().string());
             auto* IMAGE = LOADEDSHAPE.images.emplace_back(std::make_unique<SLoadedCursorImage>()).get();
@@ -511,6 +524,8 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
 
             IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
 
+            IMAGE->delay = i.delay;
+
             if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
                 delete[] (char*)IMAGE->data;
                 IMAGE->data = nullptr;
@@ -518,13 +533,13 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             }
         }
 
-        if (SHAPE.images.empty())
+        if (SHAPE->images.empty())
             return "meta invalid: no images for shape " + cursor.path().stem().string();
 
-        SHAPE.directory  = cursor.path().stem().string();
-        SHAPE.hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
-        SHAPE.hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
-        SHAPE.resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
+        SHAPE->directory  = cursor.path().stem().string();
+        SHAPE->hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
+        SHAPE->hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
+        SHAPE->resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
 
         zip_discard(zip);
     }

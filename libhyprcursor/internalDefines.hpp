@@ -23,7 +23,7 @@ struct SLoadedCursorImage {
 
     cairo_surface_t* cairoSurface = nullptr;
     int              side         = 0;
-    int delay = 0;
+    int              delay        = 0;
 
     // means this was created by resampling
     void* artificialData = nullptr;

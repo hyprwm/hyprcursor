@@ -26,10 +26,10 @@ int hyprcursor_load_theme_style(hyprcursor_manager_t* manager, hyprcursor_cursor
 struct SCursorImageData** hyprcursor_get_cursor_image_data(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info_, int* out_size) {
     const auto       MGR = (CHyprcursorManager*)manager;
     SCursorStyleInfo info;
-    info.size = info_.size;
-    int size = 0;
+    info.size                      = info_.size;
+    int                       size = 0;
     struct SCursorImageData** data = MGR->getShapesC(size, shape, info);
-    *out_size = size;
+    *out_size                      = size;
     return data;
 }
 
