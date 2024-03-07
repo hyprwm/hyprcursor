@@ -1,4 +1,4 @@
-#include "hyprcursor.hpp"
+#include "hyprcursor/hyprcursor.hpp"
 #include "internalSharedTypes.hpp"
 #include "internalDefines.hpp"
 #include <array>

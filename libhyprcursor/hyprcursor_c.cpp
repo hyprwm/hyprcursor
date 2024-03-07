@@ -1,5 +1,5 @@
-#include "hyprcursor.h"
-#include "hyprcursor.hpp"
+#include "hyprcursor/hyprcursor.h"
+#include "hyprcursor/hyprcursor.hpp"
 
 using namespace Hyprcursor;
 

@@ -1,5 +1,5 @@
 #include <iostream>
-#include <hyprcursor.hpp>
+#include <hyprcursor/hyprcursor.hpp>
 
 int main(int argc, char** argv) {
     Hyprcursor::CHyprcursorManager mgr(nullptr);

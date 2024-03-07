@@ -29,7 +29,7 @@ else()
     message(STATUS "Configuring hyprcursor in Release")
 endif()
 
-file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "libhyprcursor/*.cpp" "include/hyprcursor.hpp" "include/hyprcursor.h")
+file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "libhyprcursor/*.cpp" "include/hyprcursor/hyprcursor.hpp" "include/hyprcursor/hyprcursor.h" "include/hyprcursor/shared.h")
 
 add_library(hyprcursor SHARED ${SRCFILES})
 target_include_directories( hyprcursor
@@ -39,8 +39,7 @@ target_include_directories( hyprcursor
 set_target_properties(hyprcursor PROPERTIES
     VERSION ${hyprcursor_VERSION}
     SOVERSION 0
-    PUBLIC_HEADER include/hyprcursor.hpp
-    PUBLIC_HEADER include/hyprcursor.h
+    PUBLIC_HEADER include/hyprcursor/hyprcursor.hpp include/hyprcursor/hyprcursor.h include/hyprcursor/shared.h
 )
 
 target_link_libraries(hyprcursor PkgConfig::deps)
@@ -70,7 +69,8 @@ add_test(NAME "Test libhyprcursor in C" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/te
 add_dependencies(tests hyprcursor_test_c)
 
 # Installation
-install(TARGETS hyprcursor
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY "include/hyprcursor" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} DIRECTORY_PERMISSIONS 
+    OWNER_WRITE OWNER_READ OWNER_EXECUTE
+    GROUP_WRITE GROUP_READ GROUP_EXECUTE
+    WORLD_WRITE WORLD_READ WORLD_EXECUTE)
 install(FILES ${CMAKE_BINARY_DIR}/hyprcursor.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)

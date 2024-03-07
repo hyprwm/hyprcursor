@@ -1,4 +1,4 @@
-#include <hyprcursor.h>
+#include <hyprcursor/hyprcursor.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -16,8 +16,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int dataSize = 0;
-    hyprcursor_cursor_image_data** data = hyprcursor_get_cursor_image_data(mgr, "left_ptr", info, &dataSize);
+    int                            dataSize = 0;
+    hyprcursor_cursor_image_data** data     = hyprcursor_get_cursor_image_data(mgr, "left_ptr", info, &dataSize);
     if (data == NULL) {
         printf("data failed\n");
         return 1;
