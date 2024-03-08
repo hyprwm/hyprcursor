@@ -4,9 +4,10 @@
 #include <memory>
 
 enum eResizeAlgo {
-    RESIZE_NONE     = 0,
-    RESIZE_BILINEAR = 1,
-    RESIZE_NEAREST  = 2,
+    RESIZE_INVALID = 0,
+    RESIZE_NONE,
+    RESIZE_BILINEAR,
+    RESIZE_NEAREST,
 };
 
 enum eShapeType {
@@ -21,6 +22,17 @@ inline eResizeAlgo stringToAlgo(const std::string& s) {
     if (s == "nearest")
         return RESIZE_NEAREST;
     return RESIZE_BILINEAR;
+}
+
+inline std::string algoToString(const eResizeAlgo a) {
+    switch (a) {
+        case RESIZE_BILINEAR: return "bilinear";
+        case RESIZE_NEAREST: return "nearest";
+        case RESIZE_NONE: return "none";
+        default: return "none";
+    }
+
+    return "none";
 }
 
 struct SCursorImage {

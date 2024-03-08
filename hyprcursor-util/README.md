@@ -16,3 +16,7 @@ Cursor themes can be in 3 states:
 `--extract | -x [path]` -> extract an xcursor theme into a working state
 
 both commands support `--output | -o` to specify an output directory. This directory will be fully overwritten, and by default is `./theme` and `./extracted` respectively.
+
+### Flags
+
+`--resize [mode]` - for `extract`: specify a default resize algorithm for shapes. Default is `none`.
