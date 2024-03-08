@@ -76,3 +76,5 @@ Supported cursor image types are png and svg.
 If you are using an svg cursor, the size parameter will be ignored. 
 
 Mixing png and svg cursor images in one shape will result in an error.
+
+Please note animated svgs are not supported, you need to add a separate svg for every frame.
