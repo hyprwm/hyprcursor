@@ -27,7 +27,7 @@ stdenv.mkDerivation {
   ];
 
   outputs = [
-    "bin"
+    "out"
     "dev"
     "lib"
   ];
