@@ -2,6 +2,9 @@
 
 A utility to compile, pack, unpack, etc, hyprcursor and xcursor themes.
 
+## Runtime deps
+ - xcur2png
+
 ## States
 
 Cursor themes can be in 3 states:
