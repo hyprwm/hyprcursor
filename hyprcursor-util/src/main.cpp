@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <array>
 #include <format>
+#include <algorithm>
 #include <hyprlang.hpp>
 #include "internalSharedTypes.hpp"
 
@@ -39,6 +40,20 @@ static std::string removeBeginEndSpacesTabs(std::string str) {
 }
 
 static bool promptForDeletion(const std::string& path) {
+
+    bool emptyDirectory = !std::filesystem::exists(path);
+    if (!emptyDirectory) {
+        const auto IT = std::filesystem::directory_iterator(path);
+
+        emptyDirectory = !std::count_if(std::filesystem::begin(IT), std::filesystem::end(IT), [](auto& e) { return e.is_regular_file(); });
+    }
+
+    if (!std::filesystem::exists(path + "/manifest.hl") && std::filesystem::exists(path) && !emptyDirectory) {
+        std::cout << "Refusing to remove " << path << " because it doesn't look like a hyprcursor theme.\n"
+                  << "Please set a valid, empty, nonexistent, or a theme directory as an output path\n";
+        exit(1);
+    }
+
     std::cout << "About to delete (recursively) " << path << ", are you sure? [Y/n]\n";
     std::string result;
     std::cin >> result;
