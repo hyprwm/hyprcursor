@@ -1,8 +1,6 @@
 ## hyprcursor
 The hyprland cursor format, library and utilities.
 
-Please note it's in very early development.
-
 ## Why?
 
 XCursor sucks, and we still use it today.
