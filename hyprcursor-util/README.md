@@ -18,7 +18,10 @@ Cursor themes can be in 3 states:
 
 `--extract | -x [path]` -> extract an xcursor theme into a working state
 
-both commands support `--output | -o` to specify an output directory. This directory will be fully overwritten, and by default is `./theme` and `./extracted` respectively.
+both commands support `--output | -o` to specify an output directory. For safety reasons, **do not use this on versions below 0.1.1** as it will
+nuke the specified directory without asking.
+
+Since v0.1.2, this directory is the parent, the theme will be written to a subdirectory in it called `$ACTION_$NAME`.
 
 ### Flags
 
