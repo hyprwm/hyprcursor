@@ -89,6 +89,9 @@ static std::string getFullPathForThemeName(const std::string& name) {
             if (!themeDir.is_directory())
                 continue;
 
+            if (!name.empty() && themeDir.path().stem().string() != name)
+                continue;
+
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
             if (std::filesystem::exists(MANIFESTPATH))
@@ -106,12 +109,18 @@ static std::string getFullPathForThemeName(const std::string& name) {
             if (!themeDir.is_directory())
                 continue;
 
+            if (!name.empty() && themeDir.path().stem().string() != name)
+                continue;
+
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
             if (std::filesystem::exists(MANIFESTPATH))
                 return std::filesystem::canonical(themeDir.path()).string();
         }
     }
+
+    if (!name.empty()) // try without name
+        return getFullPathForThemeName("");
 
     return "";
 }
