@@ -38,6 +38,22 @@ static std::string removeBeginEndSpacesTabs(std::string str) {
     return str;
 }
 
+static bool promptForDeletion(const std::string& path) {
+    std::cout << "About to delete (recursively) " << path << ", are you sure? [Y/n]\n";
+    std::string result;
+    std::cin >> result;
+
+    if (result != "Y" && result != "Y\n" && result != "y\n" && result != "y") {
+        std::cout << "Abort.\n";
+        exit(1);
+        return false;
+    }
+
+    std::filesystem::remove_all(path);
+
+    return true;
+}
+
 std::unique_ptr<SCursorTheme> currentTheme;
 
 static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
@@ -181,7 +197,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         std::filesystem::create_directory(out);
     else {
         // clear the entire thing, avoid melting themes together
-        std::filesystem::remove_all(out);
+        promptForDeletion(out);
         std::filesystem::create_directory(out);
     }
 
@@ -265,7 +281,7 @@ static std::optional<std::string> extractXTheme(const std::string& xpath, const 
         std::filesystem::create_directory(out);
     else {
         // clear the entire thing, avoid melting themes together
-        std::filesystem::remove_all(out);
+        promptForDeletion(out);
         std::filesystem::create_directory(out);
     }
 
