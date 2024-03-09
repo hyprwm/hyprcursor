@@ -127,9 +127,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
     if (!std::filesystem::exists(path))
         return "input path does not exist";
 
-    std::string out = out_.empty() ? path.substr(0, path.find_last_of('/') + 1) + "theme/" : out_;
-
-    const auto  MANIFESTPATH = path + "/manifest.hl";
+    const auto MANIFESTPATH = path + "/manifest.hl";
     if (!std::filesystem::exists(MANIFESTPATH))
         return "manifest.hl is missing";
 
@@ -143,6 +141,10 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         manifest->commence();
         manifest->parse();
     } catch (const char* err) { return "failed parsing manifest: " + std::string{err}; }
+
+    const std::string THEMENAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
+
+    std::string       out = (out_.empty() ? path.substr(0, path.find_last_of('/') + 1) : out_) + "/theme_" + THEMENAME + "/";
 
     const std::string CURSORSSUBDIR = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("cursors_directory"));
     const std::string CURSORDIR     = path + "/" + CURSORSSUBDIR;
@@ -289,7 +291,7 @@ static std::optional<std::string> extractXTheme(const std::string& xpath, const 
     if (!std::filesystem::exists(xpath) || !std::filesystem::exists(xpath + "/cursors"))
         return "input path does not exist or is not an xcursor theme";
 
-    std::string out = out_.empty() ? xpath.substr(0, xpath.find_last_of('/') + 1) + "extracted/" : out_;
+    std::string out = (out_.empty() ? xpath.substr(0, xpath.find_last_of('/') + 1) : out_) + "/extracted_" + xpath.substr(xpath.find_last_of('/') + 1) + "/";
 
     // create output fs structure
     if (!std::filesystem::exists(out))
