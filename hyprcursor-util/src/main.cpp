@@ -123,11 +123,13 @@ static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
     return result;
 }
 
-static std::optional<std::string> createCursorThemeFromPath(const std::string& path, const std::string& out_ = {}) {
-    if (!std::filesystem::exists(path))
+static std::optional<std::string> createCursorThemeFromPath(const std::string& path_, const std::string& out_ = {}) {
+    if (!std::filesystem::exists(path_))
         return "input path does not exist";
 
-    const auto MANIFESTPATH = path + "/manifest.hl";
+    const std::string path = std::filesystem::canonical(path_);
+
+    const auto        MANIFESTPATH = path + "/manifest.hl";
     if (!std::filesystem::exists(MANIFESTPATH))
         return "manifest.hl is missing";
 
@@ -286,15 +288,17 @@ static std::string spawnSync(const std::string& cmd) {
     return result;
 }
 
-static std::optional<std::string> extractXTheme(const std::string& xpath, const std::string& out_) {
+static std::optional<std::string> extractXTheme(const std::string& xpath_, const std::string& out_) {
 
     if (!spawnSync("xcur2png --help").contains("xcursor"))
         return "missing dependency: -x requires xcur2png.";
 
-    if (!std::filesystem::exists(xpath) || !std::filesystem::exists(xpath + "/cursors"))
+    if (!std::filesystem::exists(xpath_) || !std::filesystem::exists(xpath_ + "/cursors"))
         return "input path does not exist or is not an xcursor theme";
 
-    std::string out = (out_.empty() ? xpath.substr(0, xpath.find_last_of('/') + 1) : out_) + "/extracted_" + xpath.substr(xpath.find_last_of('/') + 1) + "/";
+    const std::string xpath = std::filesystem::canonical(xpath_);
+
+    std::string       out = (out_.empty() ? xpath.substr(0, xpath.find_last_of('/') + 1) : out_) + "/extracted_" + xpath.substr(xpath.find_last_of('/') + 1) + "/";
 
     // create output fs structure
     if (!std::filesystem::exists(out))
