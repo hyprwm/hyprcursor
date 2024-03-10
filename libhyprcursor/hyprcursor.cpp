@@ -26,6 +26,20 @@ static std::string themeNameFromEnv() {
     return std::string{ENV};
 }
 
+static bool themeAccessible(const std::string& path) {
+    try {
+        if (!std::filesystem::exists(path + "/manifest.hl"))
+            return false;
+
+        const auto MANIFESTSTATUS = std::filesystem::status(path + "/manifest.hl");
+        if ((MANIFESTSTATUS.permissions() & std::filesystem::perms::others_read) == std::filesystem::perms::none)
+            return false;
+
+    } catch (std::exception& e) { return false; }
+
+    return true;
+}
+
 static std::string getFirstTheme() {
     // try user directories first
 
@@ -110,6 +124,9 @@ static std::string getFullPathForThemeName(const std::string& name) {
                 continue;
 
             if (!name.empty() && themeDir.path().stem().string() != name)
+                continue;
+
+            if (!themeAccessible(themeDir.path().string()))
                 continue;
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
@@ -496,6 +513,9 @@ General
 */
 
 std::optional<std::string> CHyprcursorImplementation::loadTheme() {
+
+    if (!themeAccessible(themeFullDir))
+        return "Theme inaccessible";
 
     currentTheme = &theme;
 
