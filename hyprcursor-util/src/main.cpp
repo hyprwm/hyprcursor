@@ -288,6 +288,9 @@ static std::string spawnSync(const std::string& cmd) {
 
 static std::optional<std::string> extractXTheme(const std::string& xpath, const std::string& out_) {
 
+    if (!spawnSync("xcur2png --help").contains("xcursor"))
+        return "missing dependency: -x requires xcur2png.";
+
     if (!std::filesystem::exists(xpath) || !std::filesystem::exists(xpath + "/cursors"))
         return "input path does not exist or is not an xcursor theme";
 
