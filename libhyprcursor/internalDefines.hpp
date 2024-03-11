@@ -20,7 +20,7 @@ struct SLoadedCursorImage {
     size_t           readNeedle = 0;
     void*            data       = nullptr;
     size_t           dataLen    = 0;
-    bool isSVG = false; // if true, data is just a string of chars
+    bool             isSVG      = false; // if true, data is just a string of chars
 
     cairo_surface_t* cairoSurface = nullptr;
     int              side         = 0;
@@ -46,5 +46,6 @@ class CHyprcursorImplementation {
     std::unordered_map<SCursorShape*, SLoadedCursorShape> loadedShapes;
 
     //
-    std::optional<std::string> loadTheme();
+    std::optional<std::string>       loadTheme();
+    std::vector<SLoadedCursorImage*> getFramesFor(SCursorShape* shape, int size);
 };

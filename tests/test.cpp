@@ -2,7 +2,7 @@
 #include <hyprcursor/hyprcursor.hpp>
 
 int main(int argc, char** argv) {
-    Hyprcursor::CHyprcursorManager mgr(nullptr);
+    Hyprcursor::CHyprcursorManager mgr("BIBATAWAIT");
 
     // preload size 48 for testing
     if (!mgr.loadThemeStyle(Hyprcursor::SCursorStyleInfo{.size = 48})) {
