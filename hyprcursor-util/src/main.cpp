@@ -141,7 +141,9 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         manifest->addConfigValue("description", Hyprlang::STRING{""});
         manifest->addConfigValue("version", Hyprlang::STRING{""});
         manifest->commence();
-        manifest->parse();
+        const auto RESULT = manifest->parse();
+        if (RESULT.error)
+            return "Manifest has errors: \n" + std::string{RESULT.getError()};
     } catch (const char* err) { return "failed parsing manifest: " + std::string{err}; }
 
     const std::string THEMENAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
@@ -173,7 +175,10 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
             meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
             meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
             meta->commence();
-            meta->parse();
+            const auto RESULT = meta->parse();
+
+            if (RESULT.error)
+                return "meta.hl has errors: \n" + std::string{RESULT.getError()};
         } catch (const char* err) { return "failed parsing meta (" + METAPATH + "): " + std::string{err}; }
 
         // check if we have at least one image.
