@@ -398,7 +398,7 @@ void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
         if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG)
             continue;
 
-        std::erase_if(impl->loadedShapes[shape.get()].images, [info, shape](const auto& e) {
+        std::erase_if(impl->loadedShapes[shape.get()].images, [info, &shape](const auto& e) {
             const bool isSVG        = shape->shapeType == SHAPE_SVG;
             const bool isArtificial = e->artificial;
 
