@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
     int ret = cairo_surface_write_to_png(data[0]->surface, "/tmp/arrowC.png");
 
     hyprcursor_cursor_image_data_free(data, dataSize);
+    hyprcursor_style_done(mgr, info);
 
     if (ret) {
         printf("cairo failed\n");

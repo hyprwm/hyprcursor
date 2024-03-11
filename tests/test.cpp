@@ -4,14 +4,16 @@
 int main(int argc, char** argv) {
     Hyprcursor::CHyprcursorManager mgr(nullptr);
 
+    Hyprcursor::SCursorStyleInfo   style{.size = 48};
+
     // preload size 48 for testing
-    if (!mgr.loadThemeStyle(Hyprcursor::SCursorStyleInfo{.size = 48})) {
+    if (!mgr.loadThemeStyle(style)) {
         std::cout << "failed loading style\n";
         return 1;
     }
 
     // get cursor for left_ptr
-    const auto SHAPEDATA = mgr.getShape("left_ptr", Hyprcursor::SCursorStyleInfo{.size = 48});
+    const auto SHAPEDATA = mgr.getShape("left_ptr", style);
 
     if (SHAPEDATA.images.empty()) {
         std::cout << "no images\n";
@@ -24,6 +26,8 @@ int main(int argc, char** argv) {
     const auto RET = cairo_surface_write_to_png(SHAPEDATA.images[0].surface, "/tmp/arrow.png");
 
     std::cout << "Cairo returned for write: " << RET << "\n";
+
+    mgr.cursorSurfaceStyleDone(style);
 
     if (RET)
         return 1;
