@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 set(HYPRCURSOR_VERSION "0.1.2")
+add_compile_definitions(HYPRCURSOR_VERSION="${HYPRCURSOR_VERSION}")
 
 project(hyprcursor
     VERSION ${HYPRCURSOR_VERSION}

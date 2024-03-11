@@ -7,6 +7,7 @@ project(
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprlang>=0.4.0 libzip)
+add_compile_definitions(HYPRCURSOR_VERSION="${HYPRCURSOR_VERSION}")
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 

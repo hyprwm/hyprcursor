@@ -448,6 +448,11 @@ int main(int argc, char** argv, char** envp) {
     for (size_t i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
+        if (arg == "-v" || arg == "--version") {
+            std::cout << "hyprcursor-util, built from v" << HYPRCURSOR_VERSION << "\n";
+            exit(0);
+        }
+
         if (i == 1) {
             // mode
             if (arg == "--create" || arg == "-c") {
