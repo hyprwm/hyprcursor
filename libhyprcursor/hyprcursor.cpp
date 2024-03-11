@@ -395,10 +395,23 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
 void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
     for (auto& shape : impl->theme.shapes) {
-        if (shape->resizeAlgo == RESIZE_NONE)
+        if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG)
             continue;
 
-        std::erase_if(impl->loadedShapes[shape.get()].images, [info](const auto& e) { return !e->artificial && (info.size == 0 || e->side == info.size); });
+        std::erase_if(impl->loadedShapes[shape.get()].images, [info, shape](const auto& e) {
+            const bool isSVG        = shape->shapeType == SHAPE_SVG;
+            const bool isArtificial = e->artificial;
+
+            // clean artificial rasters made for this
+            if (isArtificial && e->side == info.size)
+                return true;
+
+            // clean invalid non-svg rasters
+            if (!isSVG && e->side == 0)
+                return true;
+
+            return false;
+        });
     }
 }
 
