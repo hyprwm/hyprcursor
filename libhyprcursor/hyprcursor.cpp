@@ -617,6 +617,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             auto* IMAGE  = LOADEDSHAPE.images.emplace_back(std::make_unique<SLoadedCursorImage>()).get();
             IMAGE->side  = i.size;
             IMAGE->delay = i.delay;
+            IMAGE->isSVG = SHAPE->shapeType == SHAPE_SVG;
 
             // read from zip
             zip_file_t* image_file = zip_fopen(zip, i.filename.c_str(), ZIP_FL_UNCHANGED);
