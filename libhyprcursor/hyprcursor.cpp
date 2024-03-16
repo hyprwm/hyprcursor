@@ -508,7 +508,7 @@ static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int le
 
     size_t toRead = len > DATA->dataLen - DATA->readNeedle ? DATA->dataLen - DATA->readNeedle : len;
 
-    std::memcpy(output, DATA->data + DATA->readNeedle, toRead);
+    std::memcpy(output, (uint8_t*)DATA->data + DATA->readNeedle, toRead);
     DATA->readNeedle += toRead;
 
     if (DATA->readNeedle >= DATA->dataLen) {
