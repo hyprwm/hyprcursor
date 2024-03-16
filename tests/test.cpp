@@ -4,8 +4,12 @@
 int main(int argc, char** argv) {
     Hyprcursor::CHyprcursorManager mgr(nullptr);
 
-    Hyprcursor::SCursorStyleInfo   style{.size = 48};
+    if (!mgr.valid()) {
+        std::cout << "mgr is invalid\n";
+        return 1;
+    }
 
+    Hyprcursor::SCursorStyleInfo style{.size = 48};
     // preload size 48 for testing
     if (!mgr.loadThemeStyle(style)) {
         std::cout << "failed loading style\n";
