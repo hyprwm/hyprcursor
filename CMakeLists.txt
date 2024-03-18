@@ -48,7 +48,9 @@ target_link_libraries(hyprcursor PkgConfig::deps)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # for std::expected.
     # probably evil. Arch's clang is very outdated tho...
-    target_compile_options(hyprcursor PUBLIC -std=gnu++2b -D__cpp_concepts=202002L -Wno-macro-redefined)
+    target_compile_options(hyprcursor PUBLIC
+        $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++2b -D__cpp_concepts=202002L>
+        -Wno-builtin-macro-redefined)
 endif()
 
 # hyprcursor-util
