@@ -9,6 +9,10 @@ int main(int argc, char** argv) {
         printf("mgr null\n");
         return 1;
     }
+    if (!hyprcursor_manager_valid(mgr)) {
+        printf("mgr is invalid\n");
+        return 1;
+    }
 
     struct hyprcursor_cursor_style_info info = {.size = 48};
     if (!hyprcursor_load_theme_style(mgr, info)) {
