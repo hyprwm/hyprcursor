@@ -99,13 +99,31 @@ static std::string getFullPathForThemeName(const std::string& name) {
             if (!themeDir.is_directory())
                 continue;
 
-            if (!name.empty() && themeDir.path().stem().string() != name)
-                continue;
-
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
-            if (std::filesystem::exists(MANIFESTPATH))
-                return std::filesystem::canonical(themeDir.path()).string();
+            if (name.empty()) {
+                if (std::filesystem::exists(MANIFESTPATH))
+                    return std::filesystem::canonical(themeDir.path()).string();
+                continue;
+            }
+
+            if (!std::filesystem::exists(MANIFESTPATH))
+                continue;
+
+            std::unique_ptr<Hyprlang::CConfig> manifest;
+            try {
+                manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
+                manifest->addConfigValue("name", Hyprlang::STRING{""});
+                manifest->commence();
+                manifest->parse();
+            } catch (const char* e) { continue; }
+
+            const std::string NAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
+
+            if (NAME != name)
+                continue;
+
+            return std::filesystem::canonical(themeDir.path()).string();
         }
     }
 
