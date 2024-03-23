@@ -491,12 +491,15 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
 
     image.filename = RHS;
 
-    try {
-        image.size = std::stoull(LHS);
-    } catch (std::exception& e) {
-        result.setError(e.what());
-        return result;
-    }
+    if (!image.filename.ends_with(".svg")) {
+        try {
+            image.size = std::stoull(LHS);
+        } catch (std::exception& e) {
+            result.setError(e.what());
+            return result;
+        }
+    } else
+        image.size = 0;
 
     currentTheme->shapes.back()->images.push_back(image);
 
@@ -633,7 +636,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             // load image
             Debug::log(TRACE, "Loading {} for shape {}", i.filename, cursor.path().stem().string());
             auto* IMAGE  = LOADEDSHAPE.images.emplace_back(std::make_unique<SLoadedCursorImage>()).get();
-            IMAGE->side  = i.size;
+            IMAGE->side  = SHAPE->shapeType == SHAPE_SVG ? 0 : i.size;
             IMAGE->delay = i.delay;
             IMAGE->isSVG = SHAPE->shapeType == SHAPE_SVG;
 
