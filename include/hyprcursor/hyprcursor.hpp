@@ -44,7 +44,7 @@ namespace Hyprcursor {
       public:
         CHyprcursorManager(const char* themeName);
         /*!
-            \since 0.1.5
+            \since 0.1.6
         */
         CHyprcursorManager(const char* themeName, PHYPRCURSORLOGFUNC fn);
         ~CHyprcursorManager();
@@ -104,7 +104,7 @@ namespace Hyprcursor {
         void cursorSurfaceStyleDone(const SCursorStyleInfo&);
 
         /*!
-            \since 0.1.5
+            \since 0.1.6
 
             Registers a logging function to this manager.
             PHYPRCURSORLOGFUNC's msg is owned by the caller and will be freed afterwards.

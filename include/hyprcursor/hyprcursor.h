@@ -44,6 +44,8 @@ struct hyprcursor_cursor_style_info {
 CAPI struct hyprcursor_manager_t* hyprcursor_manager_create(const char* theme_name);
 
 /*!
+    \since 0.1.6
+    
     Same as hyprcursor_manager_create, but with a logger.
 */
 CAPI struct hyprcursor_manager_t* hyprcursor_manager_create_with_logger(const char* theme_name, PHYPRCURSORLOGFUNC fn);
@@ -90,7 +92,7 @@ CAPI void hyprcursor_cursor_image_data_free(hyprcursor_cursor_image_data** data,
 CAPI void hyprcursor_style_done(struct hyprcursor_manager_t* manager, struct hyprcursor_cursor_style_info info);
 
 /*!
-    \since 0.1.5
+    \since 0.1.6
 
     Registers a logging function to a hyprcursor_manager_t*
 
