@@ -37,10 +37,17 @@ struct SLoadedCursorShape {
 
 class CHyprcursorImplementation {
   public:
-    std::string  themeName;
-    std::string  themeFullDir;
+    CHyprcursorImplementation(Hyprcursor::CHyprcursorManager* mgr, PHYPRCURSORLOGFUNC fn) : owner(mgr), logFn(fn) {
+        ;
+    }
 
-    SCursorTheme theme;
+    Hyprcursor::CHyprcursorManager* owner = nullptr;
+    PHYPRCURSORLOGFUNC              logFn = nullptr;
+
+    std::string                     themeName;
+    std::string                     themeFullDir;
+
+    SCursorTheme                    theme;
 
     //
     std::unordered_map<SCursorShape*, SLoadedCursorShape> loadedShapes;

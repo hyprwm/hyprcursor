@@ -44,6 +44,11 @@ struct hyprcursor_cursor_style_info {
 CAPI struct hyprcursor_manager_t* hyprcursor_manager_create(const char* theme_name);
 
 /*!
+    Same as hyprcursor_manager_create, but with a logger.
+*/
+CAPI struct hyprcursor_manager_t* hyprcursor_manager_create_with_logger(const char* theme_name, PHYPRCURSORLOGFUNC fn);
+
+/*!
     Free a hyprcursor_manager_t*
 */
 CAPI void hyprcursor_manager_free(struct hyprcursor_manager_t* manager);
@@ -71,7 +76,8 @@ CAPI int hyprcursor_load_theme_style(struct hyprcursor_manager_t* manager, struc
 
     Once done with a size, call hyprcursor_style_done()
 */
-CAPI hyprcursor_cursor_image_data** hyprcursor_get_cursor_image_data(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info, int* out_size);
+CAPI hyprcursor_cursor_image_data** hyprcursor_get_cursor_image_data(struct hyprcursor_manager_t* manager, const char* shape, struct hyprcursor_cursor_style_info info,
+                                                                     int* out_size);
 
 /*!
     Free a returned hyprcursor_cursor_image_data.
@@ -82,5 +88,16 @@ CAPI void hyprcursor_cursor_image_data_free(hyprcursor_cursor_image_data** data,
     Marks a certain style as done, allowing it to be potentially freed
 */
 CAPI void hyprcursor_style_done(struct hyprcursor_manager_t* manager, struct hyprcursor_cursor_style_info info);
+
+/*!
+    \since 0.1.5
+
+    Registers a logging function to a hyprcursor_manager_t*
+
+    PHYPRCURSORLOGFUNC's msg is owned by the caller and will be freed afterwards.
+
+    fn can be null to remove a logger.
+*/
+CAPI void hyprcursor_register_logging_function(struct hyprcursor_manager_t* manager, PHYPRCURSORLOGFUNC fn);
 
 #endif

@@ -43,6 +43,10 @@ namespace Hyprcursor {
     class CHyprcursorManager {
       public:
         CHyprcursorManager(const char* themeName);
+        /*!
+            \since 0.1.5
+        */
+        CHyprcursorManager(const char* themeName, PHYPRCURSORLOGFUNC fn);
         ~CHyprcursorManager();
 
         /*!
@@ -99,9 +103,23 @@ namespace Hyprcursor {
         */
         void cursorSurfaceStyleDone(const SCursorStyleInfo&);
 
+        /*!
+            \since 0.1.5
+
+            Registers a logging function to this manager.
+            PHYPRCURSORLOGFUNC's msg is owned by the caller and will be freed afterwards.
+            fn can be null to unregister a logger.
+        */
+        void registerLoggingFunction(PHYPRCURSORLOGFUNC fn);
+
       private:
+        void                       init(const char* themeName_);
+
         CHyprcursorImplementation* impl              = nullptr;
         bool                       finalizedAndValid = false;
+        PHYPRCURSORLOGFUNC         logFn             = nullptr;
+
+        friend class CHyprcursorImplementation;
     };
 
 }

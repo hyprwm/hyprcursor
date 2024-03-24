@@ -2,13 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void logFunction(enum eHyprcursorLogLevel level, char* message) {
+    printf("[hc] %s\n", message);
+}
+
 int main(int argc, char** argv) {
-    struct hyprcursor_manager_t* mgr = hyprcursor_manager_create(NULL);
+    struct hyprcursor_manager_t* mgr = hyprcursor_manager_create_with_logger(NULL, logFunction);
 
     if (!mgr) {
         printf("mgr null\n");
         return 1;
     }
+
     if (!hyprcursor_manager_valid(mgr)) {
         printf("mgr is invalid\n");
         return 1;

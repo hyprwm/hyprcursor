@@ -1,8 +1,12 @@
 #include <iostream>
 #include <hyprcursor/hyprcursor.hpp>
 
+void logFunction(enum eHyprcursorLogLevel level, char* message) {
+    std::cout << "[hc] " << message << "\n";
+}
+
 int main(int argc, char** argv) {
-    Hyprcursor::CHyprcursorManager mgr(nullptr);
+    Hyprcursor::CHyprcursorManager mgr(nullptr, logFunction);
 
     if (!mgr.valid()) {
         std::cout << "mgr is invalid\n";

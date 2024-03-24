@@ -18,10 +18,12 @@ constexpr const std::array<const char*, 1> systemThemeDirs = {"/usr/share/icons"
 constexpr const std::array<const char*, 2> userThemeDirs   = {"/.local/share/icons", "/.icons"};
 
 //
-static std::string themeNameFromEnv() {
+static std::string themeNameFromEnv(PHYPRCURSORLOGFUNC logfn) {
     const auto ENV = getenv("HYPRCURSOR_THEME");
-    if (!ENV)
+    if (!ENV) {
+        Debug::log(HC_LOG_INFO, logfn, "themeNameFromEnv: env unset");
         return "";
+    }
 
     return std::string{ENV};
 }
@@ -36,7 +38,7 @@ static bool themeAccessible(const std::string& path) {
     return true;
 }
 
-static std::string getFirstTheme() {
+static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
     // try user directories first
 
     const auto HOMEENV = getenv("HOME");
@@ -57,8 +59,10 @@ static std::string getFirstTheme() {
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
-            if (std::filesystem::exists(MANIFESTPATH))
+            if (std::filesystem::exists(MANIFESTPATH)) {
+                Debug::log(HC_LOG_INFO, logfn, "getFirstTheme: found {}", themeDir.path().string());
                 return themeDir.path().stem().string();
+            }
         }
     }
 
@@ -74,15 +78,17 @@ static std::string getFirstTheme() {
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
-            if (std::filesystem::exists(MANIFESTPATH))
+            if (std::filesystem::exists(MANIFESTPATH)) {
+                Debug::log(HC_LOG_INFO, logfn, "getFirstTheme: found {}", themeDir.path().string());
                 return themeDir.path().stem().string();
+            }
         }
     }
 
     return "";
 }
 
-static std::string getFullPathForThemeName(const std::string& name) {
+static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORLOGFUNC logfn) {
     const auto HOMEENV = getenv("HOME");
     if (!HOMEENV)
         return "";
@@ -102,8 +108,10 @@ static std::string getFullPathForThemeName(const std::string& name) {
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
             if (name.empty()) {
-                if (std::filesystem::exists(MANIFESTPATH))
+                if (std::filesystem::exists(MANIFESTPATH)) {
+                    Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
                     return std::filesystem::canonical(themeDir.path()).string();
+                }
                 continue;
             }
 
@@ -123,6 +131,7 @@ static std::string getFullPathForThemeName(const std::string& name) {
             if (NAME != name)
                 continue;
 
+            Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
             return std::filesystem::canonical(themeDir.path()).string();
         }
     }
@@ -145,49 +154,65 @@ static std::string getFullPathForThemeName(const std::string& name) {
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
-            if (std::filesystem::exists(MANIFESTPATH))
+            if (std::filesystem::exists(MANIFESTPATH)) {
+                Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
                 return std::filesystem::canonical(themeDir.path()).string();
+            }
         }
     }
 
-    if (!name.empty()) // try without name
-        return getFullPathForThemeName("");
+    if (!name.empty()) { // try without name
+        Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: failed, trying without name of {}", name);
+        return getFullPathForThemeName("", logfn);
+    }
 
     return "";
 }
 
 CHyprcursorManager::CHyprcursorManager(const char* themeName_) {
+    init(themeName_);
+}
+
+CHyprcursorManager::CHyprcursorManager(const char* themeName_, PHYPRCURSORLOGFUNC fn) {
+    logFn = fn;
+    init(themeName_);
+}
+
+void CHyprcursorManager::init(const char* themeName_) {
     std::string themeName = themeName_ ? themeName_ : "";
 
     if (themeName.empty()) {
         // try reading from env
-        themeName = themeNameFromEnv();
+        Debug::log(HC_LOG_INFO, logFn, "CHyprcursorManager: attempting to find theme from env");
+        themeName = themeNameFromEnv(logFn);
     }
 
     if (themeName.empty()) {
         // try finding first, in the hierarchy
-        themeName = getFirstTheme();
+        Debug::log(HC_LOG_INFO, logFn, "CHyprcursorManager: attempting to find any theme");
+        themeName = getFirstTheme(logFn);
     }
 
     if (themeName.empty()) {
         // holy shit we're done
+        Debug::log(HC_LOG_INFO, logFn, "CHyprcursorManager: no themes matched");
         return;
     }
 
     // initialize theme
-    impl               = new CHyprcursorImplementation;
+    impl               = new CHyprcursorImplementation(this, logFn);
     impl->themeName    = themeName;
-    impl->themeFullDir = getFullPathForThemeName(themeName);
+    impl->themeFullDir = getFullPathForThemeName(themeName, logFn);
 
     if (impl->themeFullDir.empty())
         return;
 
-    Debug::log(LOG, "Found theme {} at {}\n", impl->themeName, impl->themeFullDir);
+    Debug::log(HC_LOG_INFO, logFn, "Found theme {} at {}\n", impl->themeName, impl->themeFullDir);
 
     const auto LOADSTATUS = impl->loadTheme();
 
     if (LOADSTATUS.has_value()) {
-        Debug::log(ERR, "Theme failed to load with {}\n", LOADSTATUS.value());
+        Debug::log(HC_LOG_ERR, logFn, "Theme failed to load with {}\n", LOADSTATUS.value());
         return;
     }
 
@@ -204,6 +229,11 @@ bool CHyprcursorManager::valid() {
 }
 
 SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shape_, const SCursorStyleInfo& info) {
+    if (!shape_) {
+        Debug::log(HC_LOG_ERR, logFn, "getShapesC: shape of nullptr is invalid");
+        return nullptr;
+    }
+
     std::string                      REQUESTEDSHAPE = shape_;
 
     std::vector<SLoadedCursorImage*> resultingImages;
@@ -232,7 +262,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
 
         // if we get here, means loadThemeStyle wasn't called most likely. If resize algo is specified, this is an error.
         if (shape->resizeAlgo != RESIZE_NONE) {
-            Debug::log(ERR, "getSurfaceFor didn't match a size?");
+            Debug::log(HC_LOG_ERR, logFn, "getSurfaceFor didn't match a size?");
             return nullptr;
         }
 
@@ -246,7 +276,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         }
 
         if (leader == 13371337) { // ???
-            Debug::log(ERR, "getSurfaceFor didn't match any nearest size?");
+            Debug::log(HC_LOG_ERR, logFn, "getSurfaceFor didn't match any nearest size?");
             return nullptr;
         }
 
@@ -263,7 +293,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         if (foundAny)
             break;
 
-        Debug::log(ERR, "getSurfaceFor didn't match any nearest size (2)?");
+        Debug::log(HC_LOG_ERR, logFn, "getSurfaceFor didn't match any nearest size (2)?");
         return nullptr;
     }
 
@@ -280,13 +310,20 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
 
     outSize = resultingImages.size();
 
+    Debug::log(HC_LOG_INFO, logFn, "getShapesC: found {} images for {}", outSize, shape_);
+
     return data;
 }
 
 bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
+    Debug::log(HC_LOG_INFO, logFn, "loadThemeStyle: loading for size {}", info.size);
+
     for (auto& shape : impl->theme.shapes) {
-        if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG)
-            continue; // don't resample NONE style cursors
+        if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG) {
+            // don't resample NONE style cursors
+            Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: ignoring {}", shape->directory);
+            continue;
+        }
 
         bool sizeFound = false;
 
@@ -327,11 +364,13 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
             }
 
             if (!leader) {
-                Debug::log(ERR, "Resampling failed to find a candidate???");
+                Debug::log(HC_LOG_ERR, logFn, "Resampling failed to find a candidate???");
                 return false;
             }
 
             const auto FRAMES = impl->getFramesFor(shape.get(), leader->side);
+
+            Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape {} has {} frames", shape->directory, FRAMES.size());
 
             for (auto& f : FRAMES) {
                 auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
@@ -368,6 +407,8 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
         } else if (shape->shapeType == SHAPE_SVG) {
             const auto FRAMES = impl->getFramesFor(shape.get(), 0);
 
+            Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: svg shape {} has {} frames", shape->directory, FRAMES.size());
+
             for (auto& f : FRAMES) {
                 auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
                 newImage->artificial     = true;
@@ -387,14 +428,14 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                 RsvgHandle* handle = rsvg_handle_new_from_data((unsigned char*)f->data, f->dataLen, &error);
 
                 if (!handle) {
-                    Debug::log(ERR, "Failed reading svg: {}", error->message);
+                    Debug::log(HC_LOG_ERR, logFn, "Failed reading svg: {}", error->message);
                     return false;
                 }
 
                 RsvgRectangle rect = {0, 0, (double)info.size, (double)info.size};
 
                 if (!rsvg_handle_render_document(handle, PCAIRO, &rect, &error)) {
-                    Debug::log(ERR, "Failed rendering svg: {}", error->message);
+                    Debug::log(HC_LOG_ERR, logFn, "Failed rendering svg: {}", error->message);
                     return false;
                 }
 
@@ -403,7 +444,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                 cairo_destroy(PCAIRO);
             }
         } else {
-            Debug::log(ERR, "Invalid shapetype in loadThemeStyle");
+            Debug::log(HC_LOG_ERR, logFn, "Invalid shapetype in loadThemeStyle");
             return false;
         }
     }
@@ -431,6 +472,10 @@ void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
             return false;
         });
     }
+}
+
+void CHyprcursorManager::registerLoggingFunction(PHYPRCURSORLOGFUNC fn) {
+    logFn = fn;
 }
 
 /*
@@ -535,7 +580,6 @@ static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int le
     if (DATA->readNeedle >= DATA->dataLen) {
         delete[] (char*)DATA->data;
         DATA->data = nullptr;
-        Debug::log(TRACE, "cairo: png read, freeing mem");
     }
 
     return CAIRO_STATUS_SUCCESS;
@@ -563,7 +607,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         manifest->commence();
         manifest->parse();
     } catch (const char* err) {
-        Debug::log(ERR, "Failed parsing manifest due to {}", err);
+        Debug::log(HC_LOG_ERR, logFn, "Failed parsing manifest due to {}", err);
         return std::string{"failed: "} + err;
     }
 
@@ -574,8 +618,10 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         return "loadTheme: cursors_directory missing or empty";
 
     for (auto& cursor : std::filesystem::directory_iterator(CURSORDIR)) {
-        if (!cursor.is_regular_file())
+        if (!cursor.is_regular_file()) {
+            Debug::log(HC_LOG_TRACE, logFn, "loadTheme: skipping {}", cursor.path().string());
             continue;
+        }
 
         auto& SHAPE       = theme.shapes.emplace_back(std::make_unique<SCursorShape>());
         auto& LOADEDSHAPE = loadedShapes[SHAPE.get()];
@@ -612,7 +658,10 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
             meta->commence();
             meta->parse();
-        } catch (const char* err) { return "failed parsing meta: " + std::string{err}; }
+        } catch (const char* err) {
+            delete[] buffer;
+            return "failed parsing meta: " + std::string{err};
+        }
 
         delete[] buffer;
 
@@ -623,7 +672,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                 else if (i.filename.ends_with(".png"))
                     SHAPE->shapeType = SHAPE_PNG;
                 else {
-                    std::cout << "WARNING: image " << i.filename << " has no known extension, assuming png.\n";
+                    Debug::log(HC_LOG_WARN, logFn, "WARNING: image {} has no known extension, assuming png.", i.filename);
                     SHAPE->shapeType = SHAPE_PNG;
                 }
             } else {
@@ -634,7 +683,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             }
 
             // load image
-            Debug::log(TRACE, "Loading {} for shape {}", i.filename, cursor.path().stem().string());
+            Debug::log(HC_LOG_TRACE, logFn, "Loading {} for shape {}", i.filename, cursor.path().stem().string());
             auto* IMAGE  = LOADEDSHAPE.images.emplace_back(std::make_unique<SLoadedCursorImage>()).get();
             IMAGE->side  = SHAPE->shapeType == SHAPE_SVG ? 0 : i.size;
             IMAGE->delay = i.delay;
@@ -651,7 +700,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
 
             zip_fclose(image_file);
 
-            Debug::log(TRACE, "Cairo: set up surface read");
+            Debug::log(HC_LOG_TRACE, logFn, "Cairo: set up surface read");
 
             if (SHAPE->shapeType == SHAPE_PNG) {
 
@@ -663,7 +712,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                     return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
                 }
             } else {
-                Debug::log(LOG, "Skipping cairo load for a svg surface");
+                Debug::log(HC_LOG_TRACE, logFn, "Skipping cairo load for a svg surface");
             }
         }
 

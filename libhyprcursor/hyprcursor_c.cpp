@@ -7,6 +7,10 @@ hyprcursor_manager_t* hyprcursor_manager_create(const char* theme_name) {
     return (hyprcursor_manager_t*)new CHyprcursorManager(theme_name);
 }
 
+hyprcursor_manager_t* hyprcursor_manager_create_with_logger(const char* theme_name, PHYPRCURSORLOGFUNC fn) {
+    return (hyprcursor_manager_t*)new CHyprcursorManager(theme_name, fn);
+}
+
 void hyprcursor_manager_free(hyprcursor_manager_t* manager) {
     delete (CHyprcursorManager*)manager;
 }
@@ -46,4 +50,9 @@ void hyprcursor_style_done(hyprcursor_manager_t* manager, hyprcursor_cursor_styl
     SCursorStyleInfo info;
     info.size = info_.size;
     return MGR->cursorSurfaceStyleDone(info);
+}
+
+void hyprcursor_register_logging_function(struct hyprcursor_manager_t* manager, PHYPRCURSORLOGFUNC fn) {
+    const auto MGR = (CHyprcursorManager*)manager;
+    MGR->registerLoggingFunction(fn);
 }
