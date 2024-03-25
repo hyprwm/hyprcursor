@@ -5,6 +5,11 @@ void logFunction(enum eHyprcursorLogLevel level, char* message) {
     std::cout << "[hc] " << message << "\n";
 }
 
+/*
+    hyprlang-test in C++.
+    Renders a cursor shape to /tmp at 48px
+*/
+
 int main(int argc, char** argv) {
     Hyprcursor::CHyprcursorManager mgr(nullptr, logFunction);
 

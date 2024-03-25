@@ -6,6 +6,11 @@ void logFunction(enum eHyprcursorLogLevel level, char* message) {
     printf("[hc] %s\n", message);
 }
 
+/*
+    hyprlang-test in C.
+    Renders a cursor shape to /tmp at 48px
+*/
+
 int main(int argc, char** argv) {
     struct hyprcursor_manager_t* mgr = hyprcursor_manager_create_with_logger(NULL, logFunction);
 
