@@ -11,7 +11,7 @@ void logFunction(enum eHyprcursorLogLevel level, char* message) {
 */
 
 int main(int argc, char** argv) {
-    Hyprcursor::CHyprcursorManager mgr(nullptr, logFunction);
+    Hyprcursor::CHyprcursorManager mgr("classicFlatHypr", logFunction);
 
     if (!mgr.valid()) {
         std::cout << "mgr is invalid\n";

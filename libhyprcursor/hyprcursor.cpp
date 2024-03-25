@@ -128,7 +128,7 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
             const std::string NAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
 
-            if (NAME != name)
+            if (NAME != name && name != themeDir.path().stem().string())
                 continue;
 
             Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
@@ -146,18 +146,29 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
             if (!themeDir.is_directory())
                 continue;
 
-            if (!name.empty() && themeDir.path().stem().string() != name)
-                continue;
-
             if (!themeAccessible(themeDir.path().string()))
                 continue;
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
-            if (std::filesystem::exists(MANIFESTPATH)) {
-                Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
-                return std::filesystem::canonical(themeDir.path()).string();
-            }
+            if (!std::filesystem::exists(MANIFESTPATH))
+                continue;
+
+            std::unique_ptr<Hyprlang::CConfig> manifest;
+            try {
+                manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
+                manifest->addConfigValue("name", Hyprlang::STRING{""});
+                manifest->commence();
+                manifest->parse();
+            } catch (const char* e) { continue; }
+
+            const std::string NAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
+
+            if (NAME != name && name != themeDir.path().stem().string())
+                continue;
+
+            Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
+            return std::filesystem::canonical(themeDir.path()).string();
         }
     }
 
