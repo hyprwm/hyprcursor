@@ -49,13 +49,20 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
 
     for (auto& dir : userThemeDirs) {
         const auto FULLPATH = HOME + dir;
-        if (!std::filesystem::exists(FULLPATH))
+        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+            Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
+        }
 
         // loop over dirs and see if any has a manifest.hl
         for (auto& themeDir : std::filesystem::directory_iterator(FULLPATH)) {
             if (!themeDir.is_directory())
                 continue;
+
+            if (!themeAccessible(themeDir.path().string())) {
+                Debug::log(HC_LOG_TRACE, logfn, "Skipping theme {} because it's inaccessible.", themeDir.path().string());
+                continue;
+            }
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
@@ -68,17 +75,24 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
 
     for (auto& dir : systemThemeDirs) {
         const auto FULLPATH = dir;
-        if (!std::filesystem::exists(FULLPATH))
+        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+            Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
+        }
 
         // loop over dirs and see if any has a manifest.hl
         for (auto& themeDir : std::filesystem::directory_iterator(FULLPATH)) {
             if (!themeDir.is_directory())
                 continue;
 
+            if (!themeAccessible(themeDir.path().string())) {
+                Debug::log(HC_LOG_TRACE, logfn, "Skipping theme {} because it's inaccessible.", themeDir.path().string());
+                continue;
+            }
+
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
-            if (std::filesystem::exists(MANIFESTPATH)) {
+            if (!std::filesystem::exists(MANIFESTPATH)) {
                 Debug::log(HC_LOG_INFO, logfn, "getFirstTheme: found {}", themeDir.path().string());
                 return themeDir.path().stem().string();
             }
@@ -97,13 +111,20 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
     for (auto& dir : userThemeDirs) {
         const auto FULLPATH = HOME + dir;
-        if (!std::filesystem::exists(FULLPATH))
+        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+            Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
+        }
 
         // loop over dirs and see if any has a manifest.hl
         for (auto& themeDir : std::filesystem::directory_iterator(FULLPATH)) {
             if (!themeDir.is_directory())
                 continue;
+
+            if (!themeAccessible(themeDir.path().string())) {
+                Debug::log(HC_LOG_TRACE, logfn, "Skipping theme {} because it's inaccessible.", themeDir.path().string());
+                continue;
+            }
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
@@ -138,16 +159,20 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
     for (auto& dir : systemThemeDirs) {
         const auto FULLPATH = dir;
-        if (!std::filesystem::exists(FULLPATH))
+        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+            Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
+        }
 
         // loop over dirs and see if any has a manifest.hl
         for (auto& themeDir : std::filesystem::directory_iterator(FULLPATH)) {
             if (!themeDir.is_directory())
                 continue;
 
-            if (!themeAccessible(themeDir.path().string()))
+            if (!themeAccessible(themeDir.path().string())) {
+                Debug::log(HC_LOG_TRACE, logfn, "Skipping theme {} because it's inaccessible.", themeDir.path().string());
                 continue;
+            }
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
 
@@ -589,7 +614,7 @@ static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int le
     DATA->readNeedle += toRead;
 
     if (DATA->readNeedle >= DATA->dataLen) {
-        delete[] (char*)DATA->data;
+        delete[](char*) DATA->data;
         DATA->data = nullptr;
     }
 
@@ -718,7 +743,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                 IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
 
                 if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
-                    delete[] (char*)IMAGE->data;
+                    delete[](char*) IMAGE->data;
                     IMAGE->data = nullptr;
                     return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
                 }
