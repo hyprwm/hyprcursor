@@ -77,4 +77,6 @@ If you are using an svg cursor, the size parameter will be ignored.
 
 Mixing png and svg cursor images in one shape will result in an error.
 
+All cursors are required to have an aspect ratio of 1:1.
+
 Please note animated svgs are not supported, you need to add a separate svg for every frame.
