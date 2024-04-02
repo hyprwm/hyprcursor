@@ -28,14 +28,18 @@ static std::string themeNameFromEnv(PHYPRCURSORLOGFUNC logfn) {
     return std::string{ENV};
 }
 
-static bool themeAccessible(const std::string& path) {
+static bool pathAccessible(const std::string& path) {
     try {
-        if (!std::filesystem::exists(path + "/manifest.hl"))
+        if (!std::filesystem::exists(path))
             return false;
 
     } catch (std::exception& e) { return false; }
 
     return true;
+}
+
+static bool themeAccessible(const std::string& path) {
+    return pathAccessible(path + "/manifest.hl");
 }
 
 static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
@@ -49,7 +53,7 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
 
     for (auto& dir : userThemeDirs) {
         const auto FULLPATH = HOME + dir;
-        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+        if (!pathAccessible(FULLPATH)) {
             Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
         }
@@ -75,7 +79,7 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
 
     for (auto& dir : systemThemeDirs) {
         const auto FULLPATH = dir;
-        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+        if (!pathAccessible(FULLPATH)) {
             Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
         }
@@ -111,7 +115,7 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
     for (auto& dir : userThemeDirs) {
         const auto FULLPATH = HOME + dir;
-        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+        if (!pathAccessible(FULLPATH)) {
             Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
         }
@@ -159,7 +163,7 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
     for (auto& dir : systemThemeDirs) {
         const auto FULLPATH = dir;
-        if (!themeAccessible(FULLPATH) || !std::filesystem::exists(FULLPATH)) {
+        if (!pathAccessible(FULLPATH)) {
             Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
         }
