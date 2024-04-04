@@ -6,9 +6,9 @@
 #include <format>
 #include <algorithm>
 #include <hyprlang.hpp>
-#include "../libhyprcursor/internalSharedTypes.hpp"
-#include "../libhyprcursor/manifest.hpp"
-#include "../libhyprcursor/meta.hpp"
+#include "internalSharedTypes.hpp"
+#include "manifest.hpp"
+#include "meta.hpp"
 
 enum eOperation {
     OPERATION_CREATE  = 0,

@@ -54,9 +54,13 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # hyprcursor-util
-add_subdirectory(hyprcursor-util)
-
-install(TARGETS hyprcursor)
+file(GLOB_RECURSE UTILSRCFILES CONFIGURE_DEPENDS "hyprcursor-util/src/*.cpp" "include/hyprcursor/hyprcursor.hpp" "include/hyprcursor/hyprcursor.h" "include/hyprcursor/shared.h")
+add_executable(hyprcursor-util ${UTILSRCFILES})
+target_include_directories(hyprcursor-util
+    PUBLIC "./include"
+    PRIVATE "./libhyprcursor" "./hyprcursor-util/src"
+)
+target_link_libraries(hyprcursor-util PkgConfig::deps hyprcursor)
 
 # tests
 add_custom_target(tests)
@@ -72,5 +76,7 @@ add_test(NAME "Test libhyprcursor in C" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/te
 add_dependencies(tests hyprcursor_test_c)
 
 # Installation
+install(TARGETS hyprcursor)
+install(TARGETS hyprcursor-util)
 install(DIRECTORY "include/hyprcursor" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${CMAKE_BINARY_DIR}/hyprcursor.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
