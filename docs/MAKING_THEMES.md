@@ -80,3 +80,23 @@ Mixing png and svg cursor images in one shape will result in an error.
 All cursors are required to have an aspect ratio of 1:1.
 
 Please note animated svgs are not supported, you need to add a separate svg for every frame.
+
+### TOML
+
+You are allowed to use TOML for all .hl files. Make sure to change the extension from `.hl` to `.toml`!
+
+#### Manifest
+
+Append `[General]` to the top, and wrap all the values in quotes.
+
+#### Meta
+
+Append `[General]` to the top, and wrap all values except hotspot in quotes.
+
+Additionally, if you have multiple `define_*` keys, merge them into one like this:
+```toml
+define_override = 'shape1;shape2;shape3'
+define_size = '24,image1.png,200;24,image2.png,200;32,image3.png,200'
+```
+
+You can put spaces around the semicolons if you prefer to.
