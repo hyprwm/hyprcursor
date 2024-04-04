@@ -6,7 +6,9 @@
 #include <format>
 #include <algorithm>
 #include <hyprlang.hpp>
-#include "internalSharedTypes.hpp"
+#include "../libhyprcursor/internalSharedTypes.hpp"
+#include "../libhyprcursor/manifest.hpp"
+#include "../libhyprcursor/meta.hpp"
 
 enum eOperation {
     OPERATION_CREATE  = 0,
@@ -48,7 +50,7 @@ static bool promptForDeletion(const std::string& path) {
         emptyDirectory = !std::count_if(std::filesystem::begin(IT), std::filesystem::end(IT), [](auto& e) { return e.is_regular_file(); });
     }
 
-    if (!std::filesystem::exists(path + "/manifest.hl") && std::filesystem::exists(path) && !emptyDirectory) {
+    if (!std::filesystem::exists(path + "/manifest.hl") && !std::filesystem::exists(path + "/manifest.toml") && std::filesystem::exists(path) && !emptyDirectory) {
         std::cout << "Refusing to remove " << path << " because it doesn't look like a hyprcursor theme.\n"
                   << "Please set a valid, empty, nonexistent, or a theme directory as an output path\n";
         exit(1);
@@ -69,88 +71,25 @@ static bool promptForDeletion(const std::string& path) {
     return true;
 }
 
-std::unique_ptr<SCursorTheme> currentTheme;
-
-static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
-    Hyprlang::CParseResult result;
-    const std::string      VALUE = V;
-
-    if (!VALUE.contains(",")) {
-        result.setError("Invalid define_size");
-        return result;
-    }
-
-    auto         LHS   = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
-    auto         RHS   = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
-    auto         DELAY = 0;
-
-    SCursorImage image;
-
-    if (RHS.contains(",")) {
-        const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
-        const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
-
-        try {
-            image.delay = std::stoull(RR);
-        } catch (std::exception& e) {
-            result.setError(e.what());
-            return result;
-        }
-
-        RHS = LL;
-    }
-
-    image.filename = RHS;
-
-    try {
-        image.size = std::stoull(LHS);
-    } catch (std::exception& e) {
-        result.setError(e.what());
-        return result;
-    }
-
-    currentTheme->shapes.back()->images.push_back(image);
-
-    return result;
-}
-
-static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
-    Hyprlang::CParseResult result;
-    const std::string      VALUE = V;
-
-    currentTheme->shapes.back()->overrides.push_back(V);
-
-    return result;
-}
-
 static std::optional<std::string> createCursorThemeFromPath(const std::string& path_, const std::string& out_ = {}) {
     if (!std::filesystem::exists(path_))
         return "input path does not exist";
 
+    SCursorTheme      currentTheme;
+
     const std::string path = std::filesystem::canonical(path_);
 
-    const auto        MANIFESTPATH = path + "/manifest.hl";
-    if (!std::filesystem::exists(MANIFESTPATH))
-        return "manifest.hl is missing";
+    CManifest         manifest(path + "/manifest");
+    const auto        PARSERESULT = manifest.parse();
 
-    std::unique_ptr<Hyprlang::CConfig> manifest;
-    try {
-        manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
-        manifest->addConfigValue("cursors_directory", Hyprlang::STRING{""});
-        manifest->addConfigValue("name", Hyprlang::STRING{""});
-        manifest->addConfigValue("description", Hyprlang::STRING{""});
-        manifest->addConfigValue("version", Hyprlang::STRING{""});
-        manifest->commence();
-        const auto RESULT = manifest->parse();
-        if (RESULT.error)
-            return "Manifest has errors: \n" + std::string{RESULT.getError()};
-    } catch (const char* err) { return "failed parsing manifest: " + std::string{err}; }
+    if (PARSERESULT.has_value())
+        return "couldn't parse manifest: " + *PARSERESULT;
 
-    const std::string THEMENAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
+    const std::string THEMENAME = manifest.parsedData.name;
 
     std::string       out = (out_.empty() ? path.substr(0, path.find_last_of('/') + 1) : out_) + "/theme_" + THEMENAME + "/";
 
-    const std::string CURSORSSUBDIR = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("cursors_directory"));
+    const std::string CURSORSSUBDIR = manifest.parsedData.cursorsDirectory;
     const std::string CURSORDIR     = path + "/" + CURSORSSUBDIR;
 
     if (CURSORSSUBDIR.empty() || !std::filesystem::exists(CURSORDIR))
@@ -158,28 +97,21 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
     // iterate over the directory and record all cursors
 
-    currentTheme = std::make_unique<SCursorTheme>();
     for (auto& dir : std::filesystem::directory_iterator(CURSORDIR)) {
-        const auto METAPATH = dir.path().string() + "/meta.hl";
+        const auto METAPATH = dir.path().string() + "/meta";
 
-        auto&      SHAPE = currentTheme->shapes.emplace_back(std::make_unique<SCursorShape>());
+        auto&      SHAPE = currentTheme.shapes.emplace_back(std::make_unique<SCursorShape>());
 
         //
-        std::unique_ptr<Hyprlang::CConfig> meta;
+        CMeta      meta{METAPATH, true, true};
+        const auto PARSERESULT2 = meta.parse();
 
-        try {
-            meta = std::make_unique<Hyprlang::CConfig>(METAPATH.c_str(), Hyprlang::SConfigOptions{});
-            meta->addConfigValue("hotspot_x", Hyprlang::FLOAT{0.F});
-            meta->addConfigValue("hotspot_y", Hyprlang::FLOAT{0.F});
-            meta->addConfigValue("resize_algorithm", Hyprlang::STRING{"nearest"});
-            meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
-            meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
-            meta->commence();
-            const auto RESULT = meta->parse();
+        if (PARSERESULT2.has_value())
+            return "couldn't parse meta: " + *PARSERESULT2;
 
-            if (RESULT.error)
-                return "meta.hl has errors: \n" + std::string{RESULT.getError()};
-        } catch (const char* err) { return "failed parsing meta (" + METAPATH + "): " + std::string{err}; }
+        for (auto& i : meta.parsedData.definedSizes) {
+            SHAPE->images.push_back(SCursorImage{i.file, i.size, i.delayMs});
+        }
 
         // check if we have at least one image.
         for (auto& i : SHAPE->images) {
@@ -209,9 +141,9 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
             return "meta invalid: no images for shape " + dir.path().stem().string();
 
         SHAPE->directory  = dir.path().stem().string();
-        SHAPE->hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
-        SHAPE->hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
-        SHAPE->resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
+        SHAPE->hotspotX   = meta.parsedData.hotspotX;
+        SHAPE->hotspotY   = meta.parsedData.hotspotY;
+        SHAPE->resizeAlgo = stringToAlgo(meta.parsedData.resizeAlgo);
 
         std::cout << "Shape " << SHAPE->directory << ": \n\toverrides: " << SHAPE->overrides.size() << "\n\tsizes: " << SHAPE->images.size() << "\n";
     }
@@ -226,13 +158,13 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
     }
 
     // manifest is copied
-    std::filesystem::copy(MANIFESTPATH, out + "/manifest.hl");
+    std::filesystem::copy(manifest.getPath(), out + "/manifest." + (manifest.getPath().ends_with(".hl") ? "hl" : "toml"));
 
     // create subdir for cursors
     std::filesystem::create_directory(out + "/" + CURSORSSUBDIR);
 
     // create zips (.hlc) for each
-    for (auto& shape : currentTheme->shapes) {
+    for (auto& shape : currentTheme.shapes) {
         const auto CURRENTCURSORSDIR = path + "/" + CURSORSSUBDIR + "/" + shape->directory;
         const auto OUTPUTFILE        = out + "/" + CURSORSSUBDIR + "/" + shape->directory + ".hlc";
         int        errp              = 0;
@@ -245,11 +177,12 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         }
 
         // add meta.hl
-        zip_source_t* meta = zip_source_file(zip, (CURRENTCURSORSDIR + "/meta.hl").c_str(), 0, 0);
+        const auto    METADIR = std::filesystem::exists(CURRENTCURSORSDIR + "/meta.hl") ? (CURRENTCURSORSDIR + "/meta.hl") : (CURRENTCURSORSDIR + "/meta.toml");
+        zip_source_t* meta    = zip_source_file(zip, METADIR.c_str(), 0, 0);
         if (!meta)
-            return "(1) failed to add meta " + (CURRENTCURSORSDIR + "/meta.hl") + " to hlc";
+            return "(1) failed to add meta " + METADIR + " to hlc";
         if (zip_file_add(zip, "meta.hl", meta, ZIP_FL_ENC_UTF_8) < 0)
-            return "(2) failed to add meta " + (CURRENTCURSORSDIR + "/meta.hl") + " to hlc";
+            return "(2) failed to add meta " + METADIR + " to hlc";
 
         meta = nullptr;
 
@@ -275,7 +208,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
     }
 
     // done!
-    std::cout << "Done, written " << currentTheme->shapes.size() << " shapes.\n";
+    std::cout << "Done, written " << currentTheme.shapes.size() << " shapes.\n";
 
     return {};
 }

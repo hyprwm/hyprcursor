@@ -10,10 +10,11 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprlang>=0.4.0 libzip)
 add_compile_definitions(HYPRCURSOR_VERSION="${HYPRCURSOR_VERSION}")
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE HCFILES CONFIGURE_DEPENDS "libhyprcursor/*.cpp")
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_executable(hyprcursor-util ${SRCFILES})
+add_executable(hyprcursor-util ${SRCFILES} ${HCFILES})
 
 target_link_libraries(hyprcursor-util PkgConfig::deps)
 target_include_directories(hyprcursor-util

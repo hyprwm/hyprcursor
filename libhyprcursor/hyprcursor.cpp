@@ -3,12 +3,13 @@
 #include "internalDefines.hpp"
 #include <array>
 #include <filesystem>
-#include <hyprlang.hpp>
 #include <zip.h>
 #include <cstring>
 #include <algorithm>
 #include <librsvg/rsvg.h>
 
+#include "manifest.hpp"
+#include "meta.hpp"
 #include "Log.hpp"
 
 using namespace Hyprcursor;
@@ -39,7 +40,7 @@ static bool pathAccessible(const std::string& path) {
 }
 
 static bool themeAccessible(const std::string& path) {
-    return pathAccessible(path + "/manifest.hl");
+    return pathAccessible(path + "/manifest.hl") || pathAccessible(path + "manifest.toml");
 }
 
 static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
@@ -68,9 +69,9 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
                 continue;
             }
 
-            const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
+            const auto MANIFESTPATH = themeDir.path().string() + "/manifest.";
 
-            if (std::filesystem::exists(MANIFESTPATH)) {
+            if (std::filesystem::exists(MANIFESTPATH + "hl") || std::filesystem::exists(MANIFESTPATH + "toml")) {
                 Debug::log(HC_LOG_INFO, logfn, "getFirstTheme: found {}", themeDir.path().string());
                 return themeDir.path().stem().string();
             }
@@ -94,9 +95,9 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
                 continue;
             }
 
-            const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
+            const auto MANIFESTPATH = themeDir.path().string() + "/manifest.";
 
-            if (!std::filesystem::exists(MANIFESTPATH)) {
+            if (std::filesystem::exists(MANIFESTPATH + "hl") || std::filesystem::exists(MANIFESTPATH + "toml")) {
                 Debug::log(HC_LOG_INFO, logfn, "getFirstTheme: found {}", themeDir.path().string());
                 return themeDir.path().stem().string();
             }
@@ -130,10 +131,10 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
                 continue;
             }
 
-            const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
+            const auto MANIFESTPATH = themeDir.path().string() + "/manifest";
 
             if (name.empty()) {
-                if (std::filesystem::exists(MANIFESTPATH)) {
+                if (std::filesystem::exists(MANIFESTPATH + ".hl") || std::filesystem::exists(MANIFESTPATH + ".toml")) {
                     Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
                     return std::filesystem::canonical(themeDir.path()).string();
                 }
@@ -143,15 +144,11 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
             if (!std::filesystem::exists(MANIFESTPATH))
                 continue;
 
-            std::unique_ptr<Hyprlang::CConfig> manifest;
-            try {
-                manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
-                manifest->addConfigValue("name", Hyprlang::STRING{""});
-                manifest->commence();
-                manifest->parse();
-            } catch (const char* e) { continue; }
+            CManifest manifest{MANIFESTPATH};
+            if (!manifest.parse().has_value())
+                continue;
 
-            const std::string NAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
+            const std::string NAME = manifest.parsedData.name;
 
             if (NAME != name && name != themeDir.path().stem().string())
                 continue;
@@ -178,20 +175,16 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
                 continue;
             }
 
-            const auto MANIFESTPATH = themeDir.path().string() + "/manifest.hl";
+            const auto MANIFESTPATH = themeDir.path().string() + "/manifest";
 
-            if (!std::filesystem::exists(MANIFESTPATH))
+            if (std::filesystem::exists(MANIFESTPATH + ".hl") || std::filesystem::exists(MANIFESTPATH + ".toml"))
                 continue;
 
-            std::unique_ptr<Hyprlang::CConfig> manifest;
-            try {
-                manifest = std::make_unique<Hyprlang::CConfig>(MANIFESTPATH.c_str(), Hyprlang::SConfigOptions{});
-                manifest->addConfigValue("name", Hyprlang::STRING{""});
-                manifest->commence();
-                manifest->parse();
-            } catch (const char* e) { continue; }
+            CManifest manifest{MANIFESTPATH};
+            if (!manifest.parse().has_value())
+                continue;
 
-            const std::string NAME = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("name"));
+            const std::string NAME = manifest.parsedData.name;
 
             if (NAME != name && name != themeDir.path().stem().string())
                 continue;
@@ -520,88 +513,6 @@ void CHyprcursorManager::registerLoggingFunction(PHYPRCURSORLOGFUNC fn) {
 
 /*
 
-Implementation
-
-*/
-
-static std::string removeBeginEndSpacesTabs(std::string str) {
-    if (str.empty())
-        return str;
-
-    int countBefore = 0;
-    while (str[countBefore] == ' ' || str[countBefore] == '\t') {
-        countBefore++;
-    }
-
-    int countAfter = 0;
-    while ((int)str.length() - countAfter - 1 >= 0 && (str[str.length() - countAfter - 1] == ' ' || str[str.length() - 1 - countAfter] == '\t')) {
-        countAfter++;
-    }
-
-    str = str.substr(countBefore, str.length() - countBefore - countAfter);
-
-    return str;
-}
-
-SCursorTheme*                 currentTheme;
-
-static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
-    Hyprlang::CParseResult result;
-    const std::string      VALUE = V;
-
-    if (!VALUE.contains(",")) {
-        result.setError("Invalid define_size");
-        return result;
-    }
-
-    auto         LHS   = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
-    auto         RHS   = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
-    auto         DELAY = 0;
-
-    SCursorImage image;
-
-    if (RHS.contains(",")) {
-        const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
-        const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
-
-        try {
-            image.delay = std::stoull(RR);
-        } catch (std::exception& e) {
-            result.setError(e.what());
-            return result;
-        }
-
-        RHS = LL;
-    }
-
-    image.filename = RHS;
-
-    if (!image.filename.ends_with(".svg")) {
-        try {
-            image.size = std::stoull(LHS);
-        } catch (std::exception& e) {
-            result.setError(e.what());
-            return result;
-        }
-    } else
-        image.size = 0;
-
-    currentTheme->shapes.back()->images.push_back(image);
-
-    return result;
-}
-
-static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
-    Hyprlang::CParseResult result;
-    const std::string      VALUE = V;
-
-    currentTheme->shapes.back()->overrides.push_back(V);
-
-    return result;
-}
-
-/*
-
 PNG reading
 
 */
@@ -618,7 +529,7 @@ static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int le
     DATA->readNeedle += toRead;
 
     if (DATA->readNeedle >= DATA->dataLen) {
-        delete[](char*) DATA->data;
+        delete[] (char*)DATA->data;
         DATA->data = nullptr;
     }
 
@@ -636,22 +547,14 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
     if (!themeAccessible(themeFullDir))
         return "Theme inaccessible";
 
-    currentTheme = &theme;
-
     // load manifest
-    std::unique_ptr<Hyprlang::CConfig> manifest;
-    try {
-        // TODO: unify this between util and lib
-        manifest = std::make_unique<Hyprlang::CConfig>((themeFullDir + "/manifest.hl").c_str(), Hyprlang::SConfigOptions{});
-        manifest->addConfigValue("cursors_directory", Hyprlang::STRING{""});
-        manifest->commence();
-        manifest->parse();
-    } catch (const char* err) {
-        Debug::log(HC_LOG_ERR, logFn, "Failed parsing manifest due to {}", err);
-        return std::string{"failed: "} + err;
-    }
+    CManifest  manifest(themeFullDir + "/manifest");
+    const auto PARSERESULT = manifest.parse();
 
-    const std::string CURSORSSUBDIR = std::any_cast<Hyprlang::STRING>(manifest->getConfigValue("cursors_directory"));
+    if (PARSERESULT.has_value())
+        return "couldn't parse manifest: " + *PARSERESULT;
+
+    const std::string CURSORSSUBDIR = manifest.parsedData.cursorsDirectory;
     const std::string CURSORDIR     = themeFullDir + "/" + CURSORSSUBDIR;
 
     if (CURSORSSUBDIR.empty() || !std::filesystem::exists(CURSORDIR))
@@ -671,8 +574,13 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         zip_t*      zip  = zip_open(cursor.path().string().c_str(), ZIP_RDONLY, &errp);
 
         zip_file_t* meta_file = zip_fopen(zip, "meta.hl", ZIP_FL_UNCHANGED);
-        if (!meta_file)
-            return "cursor" + cursor.path().string() + "failed to load meta";
+        bool        metaIsHL  = true;
+        if (!meta_file) {
+            meta_file = zip_fopen(zip, "meta.toml", ZIP_FL_UNCHANGED);
+            metaIsHL  = false;
+            if (!meta_file)
+                return "cursor" + cursor.path().string() + "failed to load meta";
+        }
 
         char* buffer = new char[1024 * 1024]; /* 1MB should be more than enough */
 
@@ -687,23 +595,17 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
 
         buffer[readBytes] = '\0';
 
-        std::unique_ptr<Hyprlang::CConfig> meta;
-
-        try {
-            meta = std::make_unique<Hyprlang::CConfig>(buffer, Hyprlang::SConfigOptions{.pathIsStream = true});
-            meta->addConfigValue("hotspot_x", Hyprlang::FLOAT{0.F});
-            meta->addConfigValue("hotspot_y", Hyprlang::FLOAT{0.F});
-            meta->addConfigValue("resize_algorithm", Hyprlang::STRING{"nearest"});
-            meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
-            meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
-            meta->commence();
-            meta->parse();
-        } catch (const char* err) {
-            delete[] buffer;
-            return "failed parsing meta: " + std::string{err};
-        }
+        CMeta meta{buffer, metaIsHL};
 
         delete[] buffer;
+
+        const auto METAPARSERESULT = meta.parse();
+        if (METAPARSERESULT.has_value())
+            return "cursor" + cursor.path().string() + "failed to parse meta: " + *METAPARSERESULT;
+
+        for (auto& i : meta.parsedData.definedSizes) {
+            SHAPE->images.push_back(SCursorImage{i.file, i.size, i.delayMs});
+        }
 
         for (auto& i : SHAPE->images) {
             if (SHAPE->shapeType == SHAPE_INVALID) {
@@ -747,7 +649,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                 IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
 
                 if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
-                    delete[](char*) IMAGE->data;
+                    delete[] (char*)IMAGE->data;
                     IMAGE->data = nullptr;
                     return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
                 }
@@ -760,9 +662,9 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             return "meta invalid: no images for shape " + cursor.path().stem().string();
 
         SHAPE->directory  = cursor.path().stem().string();
-        SHAPE->hotspotX   = std::any_cast<float>(meta->getConfigValue("hotspot_x"));
-        SHAPE->hotspotY   = std::any_cast<float>(meta->getConfigValue("hotspot_y"));
-        SHAPE->resizeAlgo = stringToAlgo(std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm")));
+        SHAPE->hotspotX   = meta.parsedData.hotspotX;
+        SHAPE->hotspotY   = meta.parsedData.hotspotY;
+        SHAPE->resizeAlgo = stringToAlgo(meta.parsedData.resizeAlgo);
 
         zip_discard(zip);
     }
