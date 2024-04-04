@@ -7,6 +7,7 @@
 
     hyprlang = {
       url = "github:hyprwm/hyprlang";
+      inputs.systems.follows = "systems";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
