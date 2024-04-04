@@ -14,6 +14,11 @@ stdenv.mkDerivation {
   inherit version;
   src = ../.;
 
+  patches = [
+    # adds /run/current-system/sw/share/icons to the icon lookup directories
+    ./dirs.patch
+  ];
+
   nativeBuildInputs = [
     cmake
     pkg-config
