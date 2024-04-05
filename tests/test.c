@@ -24,6 +24,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    hyprcursor_cursor_raw_shape_data* shapeData = hyprcursor_get_raw_shape_data(mgr, "left_ptr");
+    if (!shapeData || shapeData->len <= 0) {
+        printf("failed querying left_ptr\n");
+        return 1;
+    }
+
+    printf("left_ptr images: %d\n", shapeData->len);
+
+    for (size_t i = 0; i < shapeData->len; ++i) {
+        printf("left_ptr image size: %d\n", shapeData->images[i].len);
+    }
+
+    hyprcursor_raw_shape_data_free(shapeData);
+    shapeData = NULL;
+
     struct hyprcursor_cursor_style_info info = {.size = 48};
     if (!hyprcursor_load_theme_style(mgr, info)) {
         printf("load failed\n");

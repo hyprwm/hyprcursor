@@ -2,13 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
-
-enum eResizeAlgo {
-    RESIZE_INVALID = 0,
-    RESIZE_NONE,
-    RESIZE_BILINEAR,
-    RESIZE_NEAREST,
-};
+#include <hyprcursor/shared.h>
 
 enum eShapeType {
     SHAPE_INVALID = 0,
@@ -16,19 +10,19 @@ enum eShapeType {
     SHAPE_SVG,
 };
 
-inline eResizeAlgo stringToAlgo(const std::string& s) {
+inline eHyprcursorResizeAlgo stringToAlgo(const std::string& s) {
     if (s == "none")
-        return RESIZE_NONE;
+        return HC_RESIZE_NONE;
     if (s == "nearest")
-        return RESIZE_NEAREST;
-    return RESIZE_BILINEAR;
+        return HC_RESIZE_NEAREST;
+    return HC_RESIZE_BILINEAR;
 }
 
-inline std::string algoToString(const eResizeAlgo a) {
+inline std::string algoToString(const eHyprcursorResizeAlgo a) {
     switch (a) {
-        case RESIZE_BILINEAR: return "bilinear";
-        case RESIZE_NEAREST: return "nearest";
-        case RESIZE_NONE: return "none";
+        case HC_RESIZE_BILINEAR: return "bilinear";
+        case HC_RESIZE_NEAREST: return "nearest";
+        case HC_RESIZE_NONE: return "none";
         default: return "none";
     }
 
@@ -44,7 +38,7 @@ struct SCursorImage {
 struct SCursorShape {
     std::string               directory;
     float                     hotspotX = 0, hotspotY = 0;
-    eResizeAlgo               resizeAlgo = RESIZE_NEAREST;
+    eHyprcursorResizeAlgo     resizeAlgo = HC_RESIZE_NEAREST;
     std::vector<SCursorImage> images;
     std::vector<std::string>  overrides;
     eShapeType                shapeType = SHAPE_INVALID;

@@ -18,6 +18,17 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // test raw data
+    const auto RAWDATA = mgr.getRawShapeData("left_ptr");
+    if (RAWDATA.images.empty()) {
+        std::cout << "failed querying left_ptr\n";
+        return 1;
+    }
+
+    std::cout << "left_ptr images: " << RAWDATA.images.size() << "\n";
+    for (auto& i : RAWDATA.images)
+        std::cout << "left_ptr data size: " << i.data.size() << "\n";
+
     Hyprcursor::SCursorStyleInfo style{.size = 48};
     // preload size 48 for testing
     if (!mgr.loadThemeStyle(style)) {

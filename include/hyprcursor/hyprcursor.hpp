@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <stdlib.h>
+#include <string>
 
 #include "shared.h"
 
@@ -26,6 +27,23 @@ namespace Hyprcursor {
     */
     struct SCursorShapeData {
         std::vector<SCursorImageData> images;
+    };
+
+    /*!
+        C++ structs for hyprcursor_cursor_raw_shape_image and hyprcursor_cursor_raw_shape_data
+    */
+    struct SCursorRawShapeImage {
+        std::vector<unsigned char> data;
+        int                        size  = 0;
+        int                        delay = 200;
+    };
+
+    struct SCursorRawShapeData {
+        std::vector<SCursorRawShapeImage> images;
+        float                             hotspotX    = 0;
+        float                             hotspotY    = 0;
+        std::string                       overridenBy = "";
+        eHyprcursorResizeAlgo             resizeAlgo  = HC_RESIZE_NONE;
     };
 
     /*!
@@ -94,9 +112,45 @@ namespace Hyprcursor {
         }
 
         /*!
+            \since 0.1.6
+
+            Returns the raw image data of a cursor shape, not rendered at all, alongside the metadata.
+        */
+        SCursorRawShapeData getRawShapeData(const char* shape_) {
+            auto CDATA = getRawShapeDataC(shape_);
+
+            if (CDATA->overridenBy) {
+                SCursorRawShapeData d{.overridenBy = CDATA->overridenBy};
+                free(CDATA->overridenBy);
+                delete CDATA;
+                return d;
+            }
+
+            SCursorRawShapeData data{.hotspotX = CDATA->hotspotX, .hotspotY = CDATA->hotspotY, .overridenBy = "", .resizeAlgo = CDATA->resizeAlgo};
+
+            for (size_t i = 0; i < CDATA->len; ++i) {
+                SCursorRawShapeImageC* cimage = &CDATA->images[i];
+                SCursorRawShapeImage&  img    = data.images.emplace_back();
+                img.size                      = cimage->size;
+                img.delay                     = cimage->delay;
+                img.data                      = std::vector<unsigned char>{(unsigned char*)cimage->data, (unsigned char*)cimage->data + (std::size_t)cimage->len};
+            }
+
+            delete[] CDATA->images;
+            delete CDATA;
+
+            return data;
+        }
+
+        /*!
             Prefer getShape, this is for C compat.
         */
         SCursorImageData** getShapesC(int& outSize, const char* shape_, const SCursorStyleInfo& info);
+
+        /*!
+            Prefer getShapeData, this is for C compat.
+        */
+        SCursorRawShapeDataC* getRawShapeDataC(const char* shape_);
 
         /*!
             Marks a certain style as done, allowing it to be potentially freed

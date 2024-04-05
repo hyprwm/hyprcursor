@@ -294,7 +294,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
             break;
 
         // if we get here, means loadThemeStyle wasn't called most likely. If resize algo is specified, this is an error.
-        if (shape->resizeAlgo != RESIZE_NONE) {
+        if (shape->resizeAlgo != HC_RESIZE_NONE) {
             Debug::log(HC_LOG_ERR, logFn, "getSurfaceFor didn't match a size?");
             return nullptr;
         }
@@ -348,11 +348,58 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
     return data;
 }
 
+SCursorRawShapeDataC* CHyprcursorManager::getRawShapeDataC(const char* shape_) {
+    if (!shape_) {
+        Debug::log(HC_LOG_ERR, logFn, "getShapeDataC: shape of nullptr is invalid");
+        return nullptr;
+    }
+
+    const std::string                SHAPE = shape_;
+
+    SCursorRawShapeDataC*            data = new SCursorRawShapeDataC;
+    std::vector<SLoadedCursorImage*> resultingImages;
+
+    for (auto& shape : impl->theme.shapes) {
+        // if it's overridden just return the override
+        if (const auto IT = std::find(shape->overrides.begin(), shape->overrides.end(), SHAPE); IT != shape->overrides.end()) {
+            data->overridenBy = strdup(IT->c_str());
+            return data;
+        }
+
+        if (shape->directory != SHAPE)
+            continue;
+
+        if (!impl->loadedShapes.contains(shape.get()))
+            continue; // ??
+
+        // found it
+        for (auto& i : impl->loadedShapes[shape.get()].images) {
+            resultingImages.push_back(i.get());
+        }
+
+        data->hotspotX = shape->hotspotX;
+        data->hotspotY = shape->hotspotY;
+        break;
+    }
+
+    data->len    = resultingImages.size();
+    data->images = new SCursorRawShapeImageC[data->len];
+
+    for (size_t i = 0; i < data->len; ++i) {
+        data->images[i].data  = resultingImages[i]->data;
+        data->images[i].len   = resultingImages[i]->dataLen;
+        data->images[i].size  = resultingImages[i]->side;
+        data->images[i].delay = resultingImages[i]->delay;
+    }
+
+    return data;
+}
+
 bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
     Debug::log(HC_LOG_INFO, logFn, "loadThemeStyle: loading for size {}", info.size);
 
     for (auto& shape : impl->theme.shapes) {
-        if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG) {
+        if (shape->resizeAlgo == HC_RESIZE_NONE && shape->shapeType != SHAPE_SVG) {
             // don't resample NONE style cursors
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: ignoring {}", shape->directory);
             continue;
@@ -415,7 +462,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
                 const auto PCAIRO = cairo_create(newImage->cairoSurface);
 
-                cairo_set_antialias(PCAIRO, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+                cairo_set_antialias(PCAIRO, shape->resizeAlgo == HC_RESIZE_BILINEAR ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
 
                 cairo_save(PCAIRO);
                 cairo_set_operator(PCAIRO, CAIRO_OPERATOR_CLEAR);
@@ -426,7 +473,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                 cairo_pattern_set_extend(PTN, CAIRO_EXTEND_NONE);
                 const float scale = info.size / (float)f->side;
                 cairo_scale(PCAIRO, scale, scale);
-                cairo_pattern_set_filter(PTN, shape->resizeAlgo == RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
+                cairo_pattern_set_filter(PTN, shape->resizeAlgo == HC_RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
                 cairo_set_source(PCAIRO, PTN);
 
                 cairo_rectangle(PCAIRO, 0, 0, info.size, info.size);
@@ -487,7 +534,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
 void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
     for (auto& shape : impl->theme.shapes) {
-        if (shape->resizeAlgo == RESIZE_NONE && shape->shapeType != SHAPE_SVG)
+        if (shape->resizeAlgo == HC_RESIZE_NONE && shape->shapeType != SHAPE_SVG)
             continue;
 
         std::erase_if(impl->loadedShapes[shape.get()].images, [info, &shape](const auto& e) {
@@ -520,6 +567,9 @@ PNG reading
 static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int len) {
     const auto DATA = (SLoadedCursorImage*)data;
 
+    if (DATA->readNeedle >= DATA->dataLen)
+        return CAIRO_STATUS_READ_ERROR;
+
     if (!DATA->data)
         return CAIRO_STATUS_READ_ERROR;
 
@@ -527,11 +577,6 @@ static cairo_status_t readPNG(void* data, unsigned char* output, unsigned int le
 
     std::memcpy(output, (uint8_t*)DATA->data + DATA->readNeedle, toRead);
     DATA->readNeedle += toRead;
-
-    if (DATA->readNeedle >= DATA->dataLen) {
-        delete[] (char*)DATA->data;
-        DATA->data = nullptr;
-    }
 
     return CAIRO_STATUS_SUCCESS;
 }
