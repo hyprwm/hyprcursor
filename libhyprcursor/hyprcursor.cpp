@@ -379,6 +379,7 @@ SCursorRawShapeDataC* CHyprcursorManager::getRawShapeDataC(const char* shape_) {
 
         data->hotspotX = shape->hotspotX;
         data->hotspotY = shape->hotspotY;
+        data->type     = shape->shapeType == SHAPE_PNG ? HC_DATA_PNG : HC_DATA_SVG;
         break;
     }
 

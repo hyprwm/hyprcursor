@@ -44,6 +44,7 @@ namespace Hyprcursor {
         float                             hotspotY    = 0;
         std::string                       overridenBy = "";
         eHyprcursorResizeAlgo             resizeAlgo  = HC_RESIZE_NONE;
+        eHyprcursorDataType               type        = HC_DATA_PNG;
     };
 
     /*!
@@ -126,7 +127,7 @@ namespace Hyprcursor {
                 return d;
             }
 
-            SCursorRawShapeData data{.hotspotX = CDATA->hotspotX, .hotspotY = CDATA->hotspotY, .overridenBy = "", .resizeAlgo = CDATA->resizeAlgo};
+            SCursorRawShapeData data{.hotspotX = CDATA->hotspotX, .hotspotY = CDATA->hotspotY, .overridenBy = "", .resizeAlgo = CDATA->resizeAlgo, .type = CDATA->type};
 
             for (size_t i = 0; i < CDATA->len; ++i) {
                 SCursorRawShapeImageC* cimage = &CDATA->images[i];

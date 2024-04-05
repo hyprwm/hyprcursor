@@ -53,6 +53,7 @@ struct SCursorRawShapeDataC {
     float                         hotspotY;
     char*                         overridenBy;
     enum eHyprcursorResizeAlgo    resizeAlgo;
+    enum eHyprcursorDataType      type;
 };
 
 typedef struct SCursorRawShapeDataC hyprcursor_cursor_raw_shape_data;
