@@ -15,7 +15,7 @@ enum eOperation {
     OPERATION_EXTRACT = 1,
 };
 
-eResizeAlgo explicitResizeAlgo = RESIZE_INVALID;
+eHyprcursorResizeAlgo explicitResizeAlgo = HC_RESIZE_INVALID;
 
 struct XCursorConfigEntry {
     int         size = 0, hotspotX = 0, hotspotY = 0, delay = 0;
@@ -329,7 +329,7 @@ static std::optional<std::string> extractXTheme(const std::string& xpath_, const
         }
 
         // write a meta.hl
-        std::string metaString = std::format("resize_algorithm = {}\n", explicitResizeAlgo == RESIZE_INVALID ? "none" : algoToString(explicitResizeAlgo));
+        std::string metaString = std::format("resize_algorithm = {}\n", explicitResizeAlgo == HC_RESIZE_INVALID ? "none" : algoToString(explicitResizeAlgo));
 
         // find hotspot from first entry
         metaString +=

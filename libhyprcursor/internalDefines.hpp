@@ -18,7 +18,7 @@ struct SLoadedCursorImage {
 
     // read stuff
     size_t           readNeedle = 0;
-    void*            data       = nullptr;
+    void*            data       = nullptr; // raw png / svg data, not image data
     size_t           dataLen    = 0;
     bool             isSVG      = false; // if true, data is just a string of chars
 

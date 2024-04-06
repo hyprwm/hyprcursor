@@ -1,3 +1,10 @@
+/*
+    hyprlang-test in C.
+    Renders a cursor shape to /tmp at 48px
+
+    For better explanations, see the cpp tests.
+*/
+
 #include <hyprcursor/hyprcursor.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,11 +12,6 @@
 void logFunction(enum eHyprcursorLogLevel level, char* message) {
     printf("[hc] %s\n", message);
 }
-
-/*
-    hyprlang-test in C.
-    Renders a cursor shape to /tmp at 48px
-*/
 
 int main(int argc, char** argv) {
     struct hyprcursor_manager_t* mgr = hyprcursor_manager_create_with_logger(NULL, logFunction);
@@ -23,6 +25,21 @@ int main(int argc, char** argv) {
         printf("mgr is invalid\n");
         return 1;
     }
+
+    hyprcursor_cursor_raw_shape_data* shapeData = hyprcursor_get_raw_shape_data(mgr, "left_ptr");
+    if (!shapeData || shapeData->len <= 0) {
+        printf("failed querying left_ptr\n");
+        return 1;
+    }
+
+    printf("left_ptr images: %d\n", shapeData->len);
+
+    for (size_t i = 0; i < shapeData->len; ++i) {
+        printf("left_ptr image size: %d\n", shapeData->images[i].len);
+    }
+
+    hyprcursor_raw_shape_data_free(shapeData);
+    shapeData = NULL;
 
     struct hyprcursor_cursor_style_info info = {.size = 48};
     if (!hyprcursor_load_theme_style(mgr, info)) {

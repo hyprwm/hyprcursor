@@ -102,4 +102,21 @@ CAPI void hyprcursor_style_done(struct hyprcursor_manager_t* manager, struct hyp
 */
 CAPI void hyprcursor_register_logging_function(struct hyprcursor_manager_t* manager, PHYPRCURSORLOGFUNC fn);
 
+/*!
+    \since 0.1.6
+
+    Returns the raw image data of a cursor shape, not rendered at all, alongside the metadata.
+
+    The object needs to be freed instantly after using, see hyprcursor_raw_shape_data_free()
+*/
+CAPI hyprcursor_cursor_raw_shape_data* hyprcursor_get_raw_shape_data(struct hyprcursor_manager_t* manager, char* shape);
+
+/*!
+    \since 0.1.6
+
+    See hyprcursor_get_raw_shape_data.
+    Frees the returned object.
+*/
+CAPI void hyprcursor_raw_shape_data_free(hyprcursor_cursor_raw_shape_data* data);
+
 #endif

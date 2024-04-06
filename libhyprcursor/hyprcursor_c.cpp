@@ -56,3 +56,19 @@ void hyprcursor_register_logging_function(struct hyprcursor_manager_t* manager, 
     const auto MGR = (CHyprcursorManager*)manager;
     MGR->registerLoggingFunction(fn);
 }
+
+CAPI hyprcursor_cursor_raw_shape_data* hyprcursor_get_raw_shape_data(struct hyprcursor_manager_t* manager, char* shape) {
+    const auto MGR = (CHyprcursorManager*)manager;
+    return MGR->getRawShapeDataC(shape);
+}
+
+CAPI void hyprcursor_raw_shape_data_free(hyprcursor_cursor_raw_shape_data* data) {
+    if (data->overridenBy) {
+        free(data->overridenBy);
+        delete data;
+        return;
+    }
+
+    delete[] data->images;
+    delete data;
+}
