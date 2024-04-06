@@ -65,12 +65,17 @@ target_link_libraries(hyprcursor-util PkgConfig::deps hyprcursor)
 # tests
 add_custom_target(tests)
 
-add_executable(hyprcursor_test "tests/test.cpp")
-target_link_libraries(hyprcursor_test PRIVATE hyprcursor)
-add_test(NAME "Test libhyprcursor in C++" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test)
-add_dependencies(tests hyprcursor_test)
+add_executable(hyprcursor_test1 "tests/full_rendering.cpp")
+target_link_libraries(hyprcursor_test1 PRIVATE hyprcursor)
+add_test(NAME "Test libhyprcursor in C++ (full rendering)" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test1)
+add_dependencies(tests hyprcursor_test1)
 
-add_executable(hyprcursor_test_c "tests/test.c")
+add_executable(hyprcursor_test2 "tests/only_metadata.cpp")
+target_link_libraries(hyprcursor_test2 PRIVATE hyprcursor)
+add_test(NAME "Test libhyprcursor in C++ (only metadata)" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test2)
+add_dependencies(tests hyprcursor_test2)
+
+add_executable(hyprcursor_test_c "tests/c_test.c")
 target_link_libraries(hyprcursor_test_c PRIVATE hyprcursor)
 add_test(NAME "Test libhyprcursor in C" WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests COMMAND hyprcursor_test_c)
 add_dependencies(tests hyprcursor_test_c)
