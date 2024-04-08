@@ -181,7 +181,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
         zip_source_t* meta    = zip_source_file(zip, METADIR.c_str(), 0, 0);
         if (!meta)
             return "(1) failed to add meta " + METADIR + " to hlc";
-        if (zip_file_add(zip, "meta.hl", meta, ZIP_FL_ENC_UTF_8) < 0)
+        if (zip_file_add(zip, (std::string{"meta."} + (METADIR.ends_with(".hl") ? "hl" : "toml")).c_str(), meta, ZIP_FL_ENC_UTF_8) < 0)
             return "(2) failed to add meta " + METADIR + " to hlc";
 
         meta = nullptr;
