@@ -6,6 +6,7 @@
 #include <zip.h>
 #include <cstring>
 #include <algorithm>
+#include <cmath>
 #include <librsvg/rsvg.h>
 
 #include "manifest.hpp"
