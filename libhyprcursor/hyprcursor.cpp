@@ -141,12 +141,11 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
                 continue;
             }
 
-            if (!std::filesystem::exists(MANIFESTPATH))
-                continue;
-
             CManifest manifest{MANIFESTPATH};
-            if (!manifest.parse().has_value())
+            if (const auto R = manifest.parse(); R.has_value()) {
+                Debug::log(HC_LOG_ERR, logfn, "failed parsing Manifest of {}: {}", themeDir.path().string(), *R);
                 continue;
+            }
 
             const std::string NAME = manifest.parsedData.name;
 
@@ -177,12 +176,11 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest";
 
-            if (std::filesystem::exists(MANIFESTPATH + ".hl") || std::filesystem::exists(MANIFESTPATH + ".toml"))
+            CManifest  manifest{MANIFESTPATH};
+            if (const auto R = manifest.parse(); R.has_value()) {
+                Debug::log(HC_LOG_ERR, logfn, "failed parsing Manifest of {}: {}", themeDir.path().string(), *R);
                 continue;
-
-            CManifest manifest{MANIFESTPATH};
-            if (!manifest.parse().has_value())
-                continue;
+            }
 
             const std::string NAME = manifest.parsedData.name;
 
