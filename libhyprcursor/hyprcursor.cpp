@@ -40,7 +40,7 @@ static bool pathAccessible(const std::string& path) {
 }
 
 static bool themeAccessible(const std::string& path) {
-    return pathAccessible(path + "/manifest.hl") || pathAccessible(path + "manifest.toml");
+    return pathAccessible(path + "/manifest.hl") || pathAccessible(path + "/manifest.toml");
 }
 
 static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
