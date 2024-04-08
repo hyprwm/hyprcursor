@@ -653,6 +653,8 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             SHAPE->images.push_back(SCursorImage{i.file, i.size, i.delayMs});
         }
 
+        SHAPE->overrides = meta.parsedData.overrides;
+
         for (auto& i : SHAPE->images) {
             if (SHAPE->shapeType == SHAPE_INVALID) {
                 if (i.filename.ends_with(".svg"))
@@ -695,7 +697,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                 IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
 
                 if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
-                    delete[] (char*)IMAGE->data;
+                    delete[](char*) IMAGE->data;
                     IMAGE->data = nullptr;
                     return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
                 }
