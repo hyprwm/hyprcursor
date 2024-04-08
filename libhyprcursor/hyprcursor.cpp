@@ -335,8 +335,8 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         data[i]->delay    = resultingImages[i]->delay;
         data[i]->size     = resultingImages[i]->side;
         data[i]->surface  = resultingImages[i]->cairoSurface;
-        data[i]->hotspotX = hotX * data[i]->size;
-        data[i]->hotspotY = hotY * data[i]->size;
+        data[i]->hotspotX = std::round(hotX * (float)data[i]->size);
+        data[i]->hotspotY = std::round(hotY * (float)data[i]->size);
     }
 
     outSize = resultingImages.size();
