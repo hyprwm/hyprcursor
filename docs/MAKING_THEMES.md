@@ -50,6 +50,8 @@ resize_algorithm = bilinear
 
 # "hotspot" is where in your cursor the actual "click point" should be.
 # this is in absolute coordinates. x+ is east, y+ is north.
+# the pixel coordinates of the hotspot at size are rounded to the nearest:
+# (round(size * hotspot_x), round(size * hotspot_y))
 hotspot_x = 0.0 # this goes 0 - 1
 hotspot_y = 0.0 # this goes 0 - 1
 
