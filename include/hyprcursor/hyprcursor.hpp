@@ -58,6 +58,8 @@ namespace Hyprcursor {
         If none found, bool valid() will be false.
 
         If loading fails, bool valid() will be false.
+
+        If theme has no valid cursor shapes, bool valid() will be false.
     */
     class CHyprcursorManager {
       public:

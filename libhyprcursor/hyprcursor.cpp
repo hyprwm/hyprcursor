@@ -248,6 +248,11 @@ void CHyprcursorManager::init(const char* themeName_) {
         return;
     }
 
+    if (impl->theme.shapes.empty()) {
+        Debug::log(HC_LOG_ERR, logFn, "Theme {} has no valid cursor shapes\n", impl->themeName);
+        return;
+    }
+
     finalizedAndValid = true;
 }
 
