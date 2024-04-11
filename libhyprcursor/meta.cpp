@@ -3,6 +3,7 @@
 #include <hyprlang.hpp>
 #include <toml++/toml.hpp>
 #include <filesystem>
+#include <regex>
 
 #include "VarList.hpp"
 
@@ -93,6 +94,11 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         }
 
         RHS = LL;
+    }
+
+    if (!std::regex_match(RHS, std::regex("^[A-Za-z0-9_\\-\\.]+$"))) {
+        result.setError("Invalid cursor file name, characters must be within [A-Za-z0-9_\\-\\.] (if this seems like a mistake, check for invisible characters)");
+        return result;
     }
 
     size.file = RHS;
