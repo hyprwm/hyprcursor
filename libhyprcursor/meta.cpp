@@ -138,7 +138,9 @@ std::optional<std::string> CMeta::parseHL() {
         meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
         meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
         meta->commence();
-        meta->parse();
+        const auto RESULT = meta->parse();
+        if (RESULT.error)
+            return RESULT.getError();
     } catch (const char* err) { return "failed parsing meta: " + std::string{err}; }
 
     parsedData.hotspotX   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_x"));
