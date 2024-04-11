@@ -5,6 +5,7 @@
 #include <array>
 #include <format>
 #include <algorithm>
+#include <regex>
 #include <hyprlang.hpp>
 #include "internalSharedTypes.hpp"
 #include "manifest.hpp"
@@ -98,6 +99,9 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
     // iterate over the directory and record all cursors
 
     for (auto& dir : std::filesystem::directory_iterator(CURSORDIR)) {
+        if (!std::regex_match(dir.path().stem().string(), std::regex("^[A-Za-z0-9_\\-\\.]+$")))
+            return "Invalid cursor directory name at " + dir.path().string() + " : characters must be within [A-Za-z0-9_\\-\\.]";
+
         const auto METAPATH = dir.path().string() + "/meta";
 
         auto&      SHAPE = currentTheme.shapes.emplace_back(std::make_unique<SCursorShape>());
