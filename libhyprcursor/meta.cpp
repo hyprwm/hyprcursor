@@ -3,6 +3,7 @@
 #include <hyprlang.hpp>
 #include <toml++/toml.hpp>
 #include <filesystem>
+#include <regex>
 
 #include "VarList.hpp"
 
@@ -95,6 +96,11 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         RHS = LL;
     }
 
+    if (!std::regex_match(RHS, std::regex("^[A-Za-z0-9_\\-\\.]+$"))) {
+        result.setError("Invalid cursor file name, characters must be within [A-Za-z0-9_\\-\\.] (if this seems like a mistake, check for invisible characters)");
+        return result;
+    }
+
     size.file = RHS;
 
     if (!size.file.ends_with(".svg")) {
@@ -132,7 +138,9 @@ std::optional<std::string> CMeta::parseHL() {
         meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
         meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
         meta->commence();
-        meta->parse();
+        const auto RESULT = meta->parse();
+        if (RESULT.error)
+            return RESULT.getError();
     } catch (const char* err) { return "failed parsing meta: " + std::string{err}; }
 
     parsedData.hotspotX   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_x"));
