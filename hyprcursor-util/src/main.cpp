@@ -88,7 +88,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
     const std::string THEMENAME = manifest.parsedData.name;
 
-    std::string       out = (out_.empty() ? path.substr(0, path.find_last_of('/') + 1) : out_) + "/theme_" + THEMENAME + "/";
+    std::string       out = (out_.empty() ? path.substr(0, path.find_last_of('/')) : out_) + "/theme_" + THEMENAME;
 
     const std::string CURSORSSUBDIR = manifest.parsedData.cursorsDirectory;
     const std::string CURSORDIR     = path + "/" + CURSORSSUBDIR;
@@ -182,7 +182,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
         // add meta.hl
         const auto    METADIR = std::filesystem::exists(CURRENTCURSORSDIR + "/meta.hl") ? (CURRENTCURSORSDIR + "/meta.hl") : (CURRENTCURSORSDIR + "/meta.toml");
-        zip_source_t* meta    = zip_source_file(zip, METADIR.c_str(), 0, 0);
+        zip_source_t* meta    = zip_source_file(zip, METADIR.c_str(), 0, ZIP_LENGTH_TO_END);
         if (!meta)
             return "(1) failed to add meta " + METADIR + " to hlc";
         if (zip_file_add(zip, (std::string{"meta."} + (METADIR.ends_with(".hl") ? "hl" : "toml")).c_str(), meta, ZIP_FL_ENC_UTF_8) < 0)
@@ -190,9 +190,9 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
         meta = nullptr;
 
-        // add each cursor png
+        // add each cursor image
         for (auto& i : shape->images) {
-            zip_source_t* image = zip_source_file(zip, (CURRENTCURSORSDIR + "/" + i.filename).c_str(), 0, 0);
+            zip_source_t* image = zip_source_file(zip, (CURRENTCURSORSDIR + "/" + i.filename).c_str(), 0, ZIP_LENGTH_TO_END);
             if (!image)
                 return "(1) failed to add image " + (CURRENTCURSORSDIR + "/" + i.filename) + " to hlc";
             if (zip_file_add(zip, (i.filename).c_str(), image, ZIP_FL_ENC_UTF_8) < 0)
