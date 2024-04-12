@@ -203,9 +203,8 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
 
         // close zip and write
         if (zip_close(zip) < 0) {
-            zip_error_t ziperror;
-            zip_error_init_with_code(&ziperror, errp);
-            return "Failed to write " + OUTPUTFILE + ": " + zip_error_strerror(&ziperror);
+            zip_error_t* ziperror = zip_get_error(zip);
+            return "Failed to write " + OUTPUTFILE + ": " + zip_error_strerror(ziperror);
         }
 
         std::cout << "Written " << OUTPUTFILE << "\n";
