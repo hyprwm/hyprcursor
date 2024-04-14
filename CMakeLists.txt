@@ -20,7 +20,7 @@ configure_file(hyprcursor.pc.in hyprcursor.pc @ONLY)
 set(CMAKE_CXX_STANDARD 23)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprlang>=0.4.2 libzip cairo librsvg-2.0 tomlplusplus)
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET hyprlang>=0.4.2 libzip>=1.10.1 cairo librsvg-2.0 tomlplusplus)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Configuring hyprcursor in Debug")
