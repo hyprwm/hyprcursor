@@ -117,6 +117,8 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
             SHAPE->images.push_back(SCursorImage{i.file, i.size, i.delayMs});
         }
 
+        SHAPE->overrides = meta.parsedData.overrides;
+
         // check if we have at least one image.
         for (auto& i : SHAPE->images) {
 
