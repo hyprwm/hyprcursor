@@ -11,6 +11,10 @@
 #include "manifest.hpp"
 #include "meta.hpp"
 
+#ifndef ZIP_LENGTH_TO_END
+#define ZIP_LENGTH_TO_END -1
+#endif
+
 enum eOperation {
     OPERATION_CREATE  = 0,
     OPERATION_EXTRACT = 1,
