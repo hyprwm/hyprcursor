@@ -306,7 +306,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         // find nearest
         int leader = 13371337;
         for (auto& image : impl->loadedShapes[shape.get()].images) {
-            if (std::abs((int)(image->side - info.size)) > leader)
+            if (std::abs((int)(image->side - info.size)) > std::abs((int)(leader - info.size)))
                 continue;
 
             leader = image->side;
