@@ -210,9 +210,9 @@ CHyprcursorManager::CHyprcursorManager(const char* themeName_, PHYPRCURSORLOGFUN
     init(themeName_);
 }
 
-CHyprcursorManager::CHyprcursorManager(const char* themeName_, PHYPRCURSORLOGFUNC fn, bool allowDefaultFallback_) {
-    allowDefaultFallback = allowDefaultFallback_;
-    logFn                = fn;
+CHyprcursorManager::CHyprcursorManager(const char* themeName_, SManagerOptions options) {
+    logFn                = options.logFn;
+    allowDefaultFallback = options.allowDefaultFallback;
     init(themeName_);
 }
 
