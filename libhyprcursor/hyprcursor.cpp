@@ -201,6 +201,11 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
     return "";
 }
 
+SManagerOptions::SManagerOptions() {
+    logFn                = nullptr;
+    allowDefaultFallback = true;
+}
+
 CHyprcursorManager::CHyprcursorManager(const char* themeName_) {
     init(themeName_);
 }

@@ -51,14 +51,16 @@ namespace Hyprcursor {
         struct for cursor manager options
     */
     struct SManagerOptions {
+        explicit SManagerOptions();
+
         /*!
             The function used for logging by the cursor manager
         */
-        PHYPRCURSORLOGFUNC logFn = nullptr;
+        PHYPRCURSORLOGFUNC logFn;
         /*!
             Allow fallback to env and first theme found
         */
-        bool allowDefaultFallback = true;
+        bool allowDefaultFallback;
     };
 
     /*!
