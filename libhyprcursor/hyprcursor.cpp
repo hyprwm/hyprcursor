@@ -108,7 +108,7 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
     return "";
 }
 
-static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORLOGFUNC logfn) {
+static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORLOGFUNC logfn, bool allowDefaultFallback) {
     const auto HOMEENV = getenv("HOME");
     if (!HOMEENV)
         return "";
@@ -134,7 +134,7 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
 
             const auto MANIFESTPATH = themeDir.path().string() + "/manifest";
 
-            if (name.empty()) {
+            if (allowDefaultFallback && name.empty()) {
                 if (std::filesystem::exists(MANIFESTPATH + ".hl") || std::filesystem::exists(MANIFESTPATH + ".toml")) {
                     Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: found {}", themeDir.path().string());
                     return std::filesystem::canonical(themeDir.path()).string();
@@ -193,12 +193,17 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
         }
     }
 
-    if (!name.empty()) { // try without name
+    if (allowDefaultFallback && !name.empty()) { // try without name
         Debug::log(HC_LOG_INFO, logfn, "getFullPathForThemeName: failed, trying without name of {}", name);
-        return getFullPathForThemeName("", logfn);
+        return getFullPathForThemeName("", logfn, allowDefaultFallback);
     }
 
     return "";
+}
+
+SManagerOptions::SManagerOptions() {
+    logFn                = nullptr;
+    allowDefaultFallback = true;
 }
 
 CHyprcursorManager::CHyprcursorManager(const char* themeName_) {
@@ -210,16 +215,22 @@ CHyprcursorManager::CHyprcursorManager(const char* themeName_, PHYPRCURSORLOGFUN
     init(themeName_);
 }
 
+CHyprcursorManager::CHyprcursorManager(const char* themeName_, SManagerOptions options) {
+    logFn                = options.logFn;
+    allowDefaultFallback = options.allowDefaultFallback;
+    init(themeName_);
+}
+
 void CHyprcursorManager::init(const char* themeName_) {
     std::string themeName = themeName_ ? themeName_ : "";
 
-    if (themeName.empty()) {
+    if (allowDefaultFallback && themeName.empty()) {
         // try reading from env
         Debug::log(HC_LOG_INFO, logFn, "CHyprcursorManager: attempting to find theme from env");
         themeName = themeNameFromEnv(logFn);
     }
 
-    if (themeName.empty()) {
+    if (allowDefaultFallback && themeName.empty()) {
         // try finding first, in the hierarchy
         Debug::log(HC_LOG_INFO, logFn, "CHyprcursorManager: attempting to find any theme");
         themeName = getFirstTheme(logFn);
@@ -234,7 +245,7 @@ void CHyprcursorManager::init(const char* themeName_) {
     // initialize theme
     impl               = new CHyprcursorImplementation(this, logFn);
     impl->themeName    = themeName;
-    impl->themeFullDir = getFullPathForThemeName(themeName, logFn);
+    impl->themeFullDir = getFullPathForThemeName(themeName, logFn, allowDefaultFallback);
 
     if (impl->themeFullDir.empty())
         return;

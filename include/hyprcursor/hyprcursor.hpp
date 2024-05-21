@@ -48,6 +48,22 @@ namespace Hyprcursor {
     };
 
     /*!
+        struct for cursor manager options
+    */
+    struct SManagerOptions {
+        explicit SManagerOptions();
+
+        /*!
+            The function used for logging by the cursor manager
+        */
+        PHYPRCURSORLOGFUNC logFn;
+        /*!
+            Allow fallback to env and first theme found
+        */
+        bool allowDefaultFallback;
+    };
+
+    /*!
         Basic Hyprcursor manager.
 
         Has to be created for either a specified theme, or
@@ -68,6 +84,7 @@ namespace Hyprcursor {
             \since 0.1.6
         */
         CHyprcursorManager(const char* themeName, PHYPRCURSORLOGFUNC fn);
+        CHyprcursorManager(const char* themeName, SManagerOptions options);
         ~CHyprcursorManager();
 
         /*!
@@ -172,9 +189,10 @@ namespace Hyprcursor {
       private:
         void                       init(const char* themeName_);
 
-        CHyprcursorImplementation* impl              = nullptr;
-        bool                       finalizedAndValid = false;
-        PHYPRCURSORLOGFUNC         logFn             = nullptr;
+        CHyprcursorImplementation* impl                 = nullptr;
+        bool                       finalizedAndValid    = false;
+        bool                       allowDefaultFallback = true;
+        PHYPRCURSORLOGFUNC         logFn                = nullptr;
 
         friend class CHyprcursorImplementation;
     };
