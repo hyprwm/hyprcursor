@@ -16,6 +16,9 @@ doesn't suck as much.
  - Support for SVG cursors
  - Way more space-efficient. As an example, Bibata-XCursor is 44.1MB, while it's 6.6MB in hyprcursor.
 
+## Documentation
+See the [wiki here](https://wiki.hyprland.org/Hypr-Ecosystem/hyprcursor/)
+
 ## Tools
 
 ### hyprcursor-util
