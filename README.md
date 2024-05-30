@@ -18,6 +18,7 @@ doesn't suck as much.
 
 ## Documentation
 See the [wiki here](https://wiki.hyprland.org/Hypr-Ecosystem/hyprcursor/)
+and check out `docs/`.
 
 ## Tools
 
@@ -34,10 +35,6 @@ It provides C and C++ bindings.
 ### Examples
 
 For both C and C++, see `tests/`.
-
-## Docs
-
-See `docs/`.
 
 ## TODO
 
