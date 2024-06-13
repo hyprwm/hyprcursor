@@ -71,6 +71,7 @@ define_size = 32, image32.png
 # define_size = 64, anim2.png, 500
 # define_size = 64, anim3.png, 500
 # define_size = 64, anim4.png, 500
+# Make sure the timeout is > 0, as otherwise the consumer might ignore your timeouts for being invalid.
 ```
 
 Supported cursor image types are png and svg.
