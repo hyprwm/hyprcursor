@@ -18,6 +18,10 @@ jobs:
           pacman --noconfirm --noprogressbar -Syyu
           pacman --noconfirm --noprogressbar -Sy gcc base-devel cmake clang cairo librsvg git libzip tomlplusplus
 
+      - name: Get hyprutils-git
+        run: |
+          git clone https://github.com/hyprwm/hyprutils && cd hyprutils && cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -B build && cmake --build build --target hyprutils && cmake --install build
+
       - name: Install hyprlang
         run: |
           git clone https://github.com/hyprwm/hyprlang --recursive
