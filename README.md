@@ -53,6 +53,7 @@ Util:
  - cairo
  - libzip
  - librsvg
+ - tomlplusplus
 
 ### Build
 ```sh
