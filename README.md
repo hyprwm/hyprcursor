@@ -18,7 +18,8 @@ doesn't suck as much.
 
 ## Documentation
 See the [wiki here](https://wiki.hyprland.org/Hypr-Ecosystem/hyprcursor/)
-and check out [docs/](./docs).
+check out [docs/](./docs)
+and [standards](https://standards.hyprland.org/hyprcursor)
 
 ## Tools
 
