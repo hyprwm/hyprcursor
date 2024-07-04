@@ -634,18 +634,22 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         int         errp = 0;
         zip_t*      zip  = zip_open(cursor.path().string().c_str(), ZIP_RDONLY, &errp);
 
-        zip_file_t* meta_file = zip_fopen(zip, "meta.hl", ZIP_FL_UNCHANGED);
-        bool        metaIsHL  = true;
-        if (!meta_file) {
-            meta_file = zip_fopen(zip, "meta.toml", ZIP_FL_UNCHANGED);
-            metaIsHL  = false;
-            if (!meta_file)
-                return "cursor" + cursor.path().string() + "failed to load meta";
+        zip_int64_t index    = zip_name_locate(zip, "meta.hl", ZIP_FL_ENC_GUESS);
+        bool        metaIsHL = true;
+
+        if (index == -1) {
+            index    = zip_name_locate(zip, "meta.toml", ZIP_FL_ENC_GUESS);
+            metaIsHL = false;
         }
 
-        char* buffer = new char[1024 * 1024]; /* 1MB should be more than enough */
+        if (index == -1)
+            return "cursor" + cursor.path().string() + "failed to load meta";
 
-        int   readBytes = zip_fread(meta_file, buffer, 1024 * 1024 - 1);
+        zip_file_t* meta_file = zip_fopen_index(zip, index, ZIP_FL_UNCHANGED);
+
+        char*       buffer = new char[1024 * 1024]; /* 1MB should be more than enough */
+
+        int         readBytes = zip_fread(meta_file, buffer, 1024 * 1024 - 1);
 
         zip_fclose(meta_file);
 
@@ -669,6 +673,9 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         }
 
         SHAPE->overrides = meta.parsedData.overrides;
+
+        zip_stat_t sb;
+        zip_stat_init(&sb);
 
         for (auto& i : SHAPE->images) {
             if (SHAPE->shapeType == SHAPE_INVALID) {
@@ -694,14 +701,23 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             IMAGE->delay = i.delay;
             IMAGE->isSVG = SHAPE->shapeType == SHAPE_SVG;
 
-            // read from zip
-            zip_file_t* image_file = zip_fopen(zip, i.filename.c_str(), ZIP_FL_UNCHANGED);
-            if (!image_file)
+            index = zip_name_locate(zip, i.filename.c_str(), ZIP_FL_ENC_GUESS);
+            if (index == -1)
                 return "cursor" + cursor.path().string() + "failed to load image_file";
 
-            IMAGE->data = new char[1024 * 1024]; /* 1MB should be more than enough, again. This probably should be in the spec. */
+            // read from zip
+            zip_file_t* image_file = zip_fopen_index(zip, index, ZIP_FL_UNCHANGED);
+            zip_stat_index(zip, index, ZIP_FL_UNCHANGED, &sb);
 
-            IMAGE->dataLen = zip_fread(image_file, IMAGE->data, 1024 * 1024 - 1);
+            if (sb.valid & ZIP_STAT_SIZE) {
+                IMAGE->data    = new char[sb.size + 1];
+                IMAGE->dataLen = sb.size + 1;
+            } else {
+                IMAGE->data    = new char[1024 * 1024]; /* 1MB should be more than enough, again. This probably should be in the spec. */
+                IMAGE->dataLen = 1024 * 1024;
+            }
+
+            IMAGE->dataLen = zip_fread(image_file, IMAGE->data, IMAGE->dataLen - 1);
 
             zip_fclose(image_file);
 
