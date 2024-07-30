@@ -17,17 +17,16 @@
 using namespace Hyprcursor;
 
 static std::vector<std::string> getSystemThemeDirs() {
-    char*                    envXdgData = std::getenv("XDG_DATA_DIRS");
+    const auto               envXdgData = std::getenv("XDG_DATA_DIRS");
     std::vector<std::string> result;
     if (envXdgData) {
         std::stringstream envXdgStream(envXdgData);
         std::string       tmpStr;
-        while (getline(envXdgStream, tmpStr, ':')) {
+        while (getline(envXdgStream, tmpStr, ':'))
             result.push_back((tmpStr + "/icons"));
-        }
-    } else {
-        std::vector<std::string> result = {"/usr/share/icons"};
-    }
+    } else
+        result = {"/usr/share/icons"};
+
     return result;
 }
 
