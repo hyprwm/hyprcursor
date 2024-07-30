@@ -2,6 +2,7 @@
 #include "internalSharedTypes.hpp"
 #include "internalDefines.hpp"
 #include <array>
+#include <cstdio>
 #include <filesystem>
 #include <zip.h>
 #include <cstring>
@@ -15,12 +16,25 @@
 
 using namespace Hyprcursor;
 
-// directories for lookup
-constexpr const std::array<const char*, 1> systemThemeDirs = {"/usr/share/icons"};
+static std::vector<std::string> getSystemThemeDirs() {
+    char*                    envXdgData = std::getenv("XDG_DATA_DIRS");
+    std::vector<std::string> result;
+    if (envXdgData) {
+        std::stringstream envXdgStream(envXdgData);
+        std::string       tmpStr;
+        while (getline(envXdgStream, tmpStr, ':')) {
+            result.push_back((tmpStr + "/icons"));
+        }
+    } else {
+        std::vector<std::string> result = {"/usr/share/icons"};
+    }
+    return result;
+}
+
+const std::vector<std::string>             systemThemeDirs = getSystemThemeDirs();
 constexpr const std::array<const char*, 2> userThemeDirs   = {"/.local/share/icons", "/.icons"};
 
-//
-static std::string themeNameFromEnv(PHYPRCURSORLOGFUNC logfn) {
+static std::string                         themeNameFromEnv(PHYPRCURSORLOGFUNC logfn) {
     const auto ENV = getenv("HYPRCURSOR_THEME");
     if (!ENV) {
         Debug::log(HC_LOG_INFO, logfn, "themeNameFromEnv: env unset");
@@ -728,7 +742,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                 IMAGE->cairoSurface = cairo_image_surface_create_from_png_stream(::readPNG, IMAGE);
 
                 if (const auto STATUS = cairo_surface_status(IMAGE->cairoSurface); STATUS != CAIRO_STATUS_SUCCESS) {
-                    delete[](char*) IMAGE->data;
+                    delete[] (char*)IMAGE->data;
                     IMAGE->data = nullptr;
                     return "Failed reading cairoSurface, status " + std::to_string((int)STATUS);
                 }
