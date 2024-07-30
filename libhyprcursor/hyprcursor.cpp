@@ -33,7 +33,9 @@ static std::vector<std::string> getSystemThemeDirs() {
 const std::vector<std::string>             systemThemeDirs = getSystemThemeDirs();
 constexpr const std::array<const char*, 2> userThemeDirs   = {"/.local/share/icons", "/.icons"};
 
-static std::string                         themeNameFromEnv(PHYPRCURSORLOGFUNC logfn) {
+//
+
+static std::string themeNameFromEnv(PHYPRCURSORLOGFUNC logfn) {
     const auto ENV = getenv("HYPRCURSOR_THEME");
     if (!ENV) {
         Debug::log(HC_LOG_INFO, logfn, "themeNameFromEnv: env unset");
