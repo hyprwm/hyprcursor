@@ -7,6 +7,7 @@
   hyprlang,
   librsvg,
   libzip,
+  xcur2png,
   tomlplusplus,
   version ? "git",
 }:
@@ -25,6 +26,7 @@ stdenv.mkDerivation {
     hyprlang
     librsvg
     libzip
+    xcur2png
     tomlplusplus
   ];
 
