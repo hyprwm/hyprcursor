@@ -28,8 +28,7 @@ CVarList::CVarList(const std::string& in, const size_t lastArgNo, const char del
     std::string args{in};
     size_t      idx = 0;
     size_t      pos = 0;
-    std::ranges::replace_if(
-        args, [&](const char& c) { return delim == 's' ? std::isspace(c) : c == delim; }, 0);
+    std::ranges::replace_if(args, [&](const char& c) { return delim == 's' ? std::isspace(c) : c == delim; }, 0);
 
     for (const auto& s : args | std::views::split(0)) {
         if (removeEmpty && s.empty())

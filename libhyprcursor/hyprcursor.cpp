@@ -389,6 +389,12 @@ SCursorRawShapeDataC* CHyprcursorManager::getRawShapeDataC(const char* shape_) {
     SCursorRawShapeDataC*            data = new SCursorRawShapeDataC;
     std::vector<SLoadedCursorImage*> resultingImages;
     data->overridenBy = nullptr;
+    data->images      = nullptr;
+    data->len         = 0;
+    data->hotspotX    = 0;
+    data->hotspotY    = 0;
+    data->resizeAlgo  = eHyprcursorResizeAlgo::HC_RESIZE_NONE;
+    data->type        = eHyprcursorDataType::HC_DATA_PNG;
 
     for (auto& shape : impl->theme.shapes) {
         // if it's overridden just return the override
