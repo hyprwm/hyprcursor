@@ -2,6 +2,7 @@
 #include "internalSharedTypes.hpp"
 #include "internalDefines.hpp"
 #include <array>
+#include <sstream>
 #include <cstdio>
 #include <filesystem>
 #include <zip.h>
