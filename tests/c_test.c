@@ -27,8 +27,19 @@ int main(int argc, char** argv) {
     }
 
     hyprcursor_cursor_raw_shape_data* shapeData = hyprcursor_get_raw_shape_data(mgr, "left_ptr");
-    if (!shapeData || shapeData->len <= 0) {
+    if (!shapeData) {
         printf("failed querying left_ptr\n");
+        return 1;
+    }
+
+    if (shapeData->overridenBy) {
+        hyprcursor_cursor_raw_shape_data* ov = hyprcursor_get_raw_shape_data(mgr, shapeData->overridenBy);
+        hyprcursor_raw_shape_data_free(shapeData);
+        shapeData = ov;
+    }
+
+    if (!shapeData || shapeData->len <= 0) {
+        printf("left_ptr has no images\n");
         return 1;
     }
 
