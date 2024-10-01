@@ -399,11 +399,14 @@ SCursorRawShapeDataC* CHyprcursorManager::getRawShapeDataC(const char* shape_) {
 
     for (auto& shape : impl->theme.shapes) {
         // if it's overridden just return the override
-        if (const auto IT = std::find(shape->overrides.begin(), shape->overrides.end(), SHAPE); IT != shape->overrides.end()) {
-            data->overridenBy = strdup(IT->c_str());
+        if (const auto IT = std::find_if(shape->overrides.begin(), shape->overrides.end(), [&](const auto& e) { return e == SHAPE && SHAPE != shape->directory; });
+            IT != shape->overrides.end()) {
+            data->overridenBy = strdup(shape->directory.c_str());
             return data;
         }
+    }
 
+    for (auto& shape : impl->theme.shapes) {
         if (shape->directory != SHAPE)
             continue;
 
