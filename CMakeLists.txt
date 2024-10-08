@@ -119,3 +119,9 @@ install(TARGETS hyprcursor-util)
 install(DIRECTORY "include/hyprcursor" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${CMAKE_BINARY_DIR}/hyprcursor.pc
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+if(INSTALL_TESTS)
+  install(TARGETS hyprcursor_test1)
+  install(TARGETS hyprcursor_test2)
+  install(TARGETS hyprcursor_test_c)
+endif()
