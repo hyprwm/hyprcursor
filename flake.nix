@@ -30,7 +30,7 @@
 
     packages = eachSystem (system: {
       default = self.packages.${system}.hyprcursor;
-      inherit (pkgsFor.${system}) hyprcursor;
+      inherit (pkgsFor.${system}) hyprcursor hyprcursor-with-tests;
     });
 
     checks = eachSystem (system: self.packages.${system});

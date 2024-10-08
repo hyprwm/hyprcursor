@@ -19,6 +19,10 @@ in {
         version = version + "+date=" + (mkDate (inputs.self.lastModifiedDate or "19700101")) + "_" + (inputs.self.shortRev or "dirty");
         inherit (final) hyprlang;
       };
+
+      hyprcursor-with-tests = final.hyprcursor.overrideAttrs (_: _: {
+        cmakeFlags = [(lib.cmakeBool "INSTALL_TESTS" true)];
+      });
     })
   ];
 }
