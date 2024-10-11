@@ -71,49 +71,53 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
     Hyprlang::CParseResult result;
     const std::string      VALUE = V;
 
-    if (!VALUE.contains(",")) {
-        result.setError("Invalid define_size");
-        return result;
-    }
+    CVarList               sizes(VALUE, 0, ';');
 
-    auto                LHS   = removeBeginEndSpacesTabs(VALUE.substr(0, VALUE.find_first_of(",")));
-    auto                RHS   = removeBeginEndSpacesTabs(VALUE.substr(VALUE.find_first_of(",") + 1));
-    auto                DELAY = 0;
-
-    CMeta::SDefinedSize size;
-
-    if (RHS.contains(",")) {
-        const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
-        const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
-
-        try {
-            size.delayMs = std::stoull(RR);
-        } catch (std::exception& e) {
-            result.setError(e.what());
+    for (const auto& sizeStr : sizes) {
+        if (!sizeStr.contains(",")) {
+            result.setError("Invalid define_size");
             return result;
         }
 
-        RHS = LL;
-    }
+        auto                LHS   = removeBeginEndSpacesTabs(sizeStr.substr(0, sizeStr.find_first_of(",")));
+        auto                RHS   = removeBeginEndSpacesTabs(sizeStr.substr(sizeStr.find_first_of(",") + 1));
+        auto                DELAY = 0;
 
-    if (!std::regex_match(RHS, std::regex("^[A-Za-z0-9_\\-\\.]+$"))) {
-        result.setError("Invalid cursor file name, characters must be within [A-Za-z0-9_\\-\\.] (if this seems like a mistake, check for invisible characters)");
-        return result;
-    }
+        CMeta::SDefinedSize size;
 
-    size.file = RHS;
+        if (RHS.contains(",")) {
+            const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
+            const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
 
-    if (!size.file.ends_with(".svg")) {
-        try {
-            size.size = std::stoull(LHS);
-        } catch (std::exception& e) {
-            result.setError(e.what());
+            try {
+                size.delayMs = std::stoull(RR);
+            } catch (std::exception& e) {
+                result.setError(e.what());
+                return result;
+            }
+
+            RHS = LL;
+        }
+
+        if (!std::regex_match(RHS, std::regex("^[A-Za-z0-9_\\-\\.]+$"))) {
+            result.setError("Invalid cursor file name, characters must be within [A-Za-z0-9_\\-\\.] (if this seems like a mistake, check for invisible characters)");
             return result;
         }
-    } else
-        size.size = 0;
 
-    currentMeta->parsedData.definedSizes.push_back(size);
+        size.file = RHS;
+
+        if (!size.file.ends_with(".svg")) {
+            try {
+                size.size = std::stoull(LHS);
+            } catch (std::exception& e) {
+                result.setError(e.what());
+                return result;
+            }
+        } else
+            size.size = 0;
+
+        currentMeta->parsedData.definedSizes.push_back(size);
+    }
 
     return result;
 }
@@ -122,7 +126,11 @@ static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
     Hyprlang::CParseResult result;
     const std::string      VALUE = V;
 
-    currentMeta->parsedData.overrides.push_back(VALUE);
+    CVarList               overrides(VALUE, 0, ';');
+
+    for (const auto& o : overrides) {
+        currentMeta->parsedData.overrides.push_back(VALUE);
+    }
 
     return result;
 }
