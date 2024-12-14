@@ -2,6 +2,7 @@
 #include <zip.h>
 #include <optional>
 #include <filesystem>
+#include <fstream>
 #include <array>
 #include <format>
 #include <algorithm>
