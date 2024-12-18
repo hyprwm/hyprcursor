@@ -154,6 +154,7 @@ std::optional<std::string> CMeta::parseHL() {
 
     parsedData.hotspotX   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_x"));
     parsedData.hotspotY   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_y"));
+    parsedData.hotspotY   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("nominal_size"));
     parsedData.resizeAlgo = std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"));
 
     return {};
