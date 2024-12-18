@@ -20,7 +20,7 @@ class CMeta {
 
     struct {
         std::string               resizeAlgo;
-        float                     hotspotX = 0, hotspotY = 0;
+        float                     hotspotX = 0, hotspotY = 0, nominalSize = 1.F;
         std::vector<std::string>  overrides;
         std::vector<SDefinedSize> definedSizes;
     } parsedData;
