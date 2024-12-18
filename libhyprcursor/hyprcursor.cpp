@@ -455,7 +455,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
         if (shape->shapeType == SHAPE_PNG) {
             for (auto& image : impl->loadedShapes[shape.get()].images) {
-                if (image->side != info.size)
+                if (image->side != std::round(info.size / shape->nominalSize))
                     continue;
 
                 sizeFound = true;
