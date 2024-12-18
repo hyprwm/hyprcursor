@@ -454,8 +454,10 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
         bool sizeFound = false;
 
         if (shape->shapeType == SHAPE_PNG) {
+            const int IDEALSIDE = std::round(info.size / shape->nominalSize);
+
             for (auto& image : impl->loadedShapes[shape.get()].images) {
-                if (image->side != std::round(info.size / shape->nominalSize))
+                if (image->side != IDEALSIDE)
                     continue;
 
                 sizeFound = true;
@@ -469,7 +471,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
             SLoadedCursorImage* leader    = nullptr;
             int                 leaderVal = 1000000;
             for (auto& image : impl->loadedShapes[shape.get()].images) {
-                if (image->side < info.size)
+                if (image->side < IDEALSIDE)
                     continue;
 
                 if (image->side > leaderVal)
@@ -481,7 +483,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
             if (!leader) {
                 for (auto& image : impl->loadedShapes[shape.get()].images) {
-                    if (std::abs((int)(image->side - info.size)) > leaderVal)
+                    if (std::abs((int)(image->side - IDEALSIDE)) > leaderVal)
                         continue;
 
                     leaderVal = image->side;
@@ -498,7 +500,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape {} has {} frames", shape->directory, FRAMES.size());
 
-            const int PIXELSIDE = std::round(info.size / shape->nominalSize);
+            const int PIXELSIDE = std::round(leader->side / shape->nominalSize);
 
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape has nominal {:.2f}, pixel size will be {}x", shape->nominalSize, PIXELSIDE);
 
@@ -566,7 +568,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                     return false;
                 }
 
-                RsvgRectangle rect = {0, 0, (double)info.size, (double)info.size};
+                RsvgRectangle rect = {0, 0, (double)PIXELSIDE, (double)PIXELSIDE};
 
                 if (!rsvg_handle_render_document(handle, PCAIRO, &rect, &error)) {
                     Debug::log(HC_LOG_ERR, logFn, "Failed rendering svg: {}", error->message);
