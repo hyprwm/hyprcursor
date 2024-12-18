@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     /*
         Create a manager. You can optionally pass a logger function.
     */
-    Hyprcursor::CHyprcursorManager mgr("HyprBibataModernClassicSVG", logFunction);
+    Hyprcursor::CHyprcursorManager mgr(nullptr, logFunction);
 
     /*
         Manager could be invalid if no themes were found, or
