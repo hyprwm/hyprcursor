@@ -54,6 +54,7 @@ struct SCursorRawShapeDataC {
     char*                         overridenBy;
     enum eHyprcursorResizeAlgo    resizeAlgo;
     enum eHyprcursorDataType      type;
+    float                         nominalSize;
 };
 
 typedef struct SCursorRawShapeDataC hyprcursor_cursor_raw_shape_data;

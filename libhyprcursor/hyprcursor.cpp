@@ -307,13 +307,15 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         if (REQUESTEDSHAPE != shape->directory && std::find(shape->overrides.begin(), shape->overrides.end(), REQUESTEDSHAPE) == shape->overrides.end())
             continue;
 
+        const int PIXELSIDE = std::round(info.size / shape->nominalSize);
+
         hotX = shape->hotspotX;
         hotY = shape->hotspotY;
 
         // matched :)
         bool foundAny = false;
         for (auto& image : impl->loadedShapes[shape.get()].images) {
-            if (image->side != info.size)
+            if (image->side != PIXELSIDE)
                 continue;
 
             // found size
@@ -333,7 +335,7 @@ SCursorImageData** CHyprcursorManager::getShapesC(int& outSize, const char* shap
         // find nearest
         int leader = 13371337;
         for (auto& image : impl->loadedShapes[shape.get()].images) {
-            if (std::abs((int)(image->side - info.size)) > std::abs((int)(leader - info.size)))
+            if (std::abs((int)(image->side - PIXELSIDE)) > std::abs((int)(leader - PIXELSIDE)))
                 continue;
 
             leader = image->side;
@@ -392,8 +394,9 @@ SCursorRawShapeDataC* CHyprcursorManager::getRawShapeDataC(const char* shape_) {
     data->overridenBy = nullptr;
     data->images      = nullptr;
     data->len         = 0;
-    data->hotspotX    = 0;
-    data->hotspotY    = 0;
+    data->hotspotX    = 0.f;
+    data->hotspotY    = 0.F;
+    data->nominalSize = 1.F;
     data->resizeAlgo  = eHyprcursorResizeAlgo::HC_RESIZE_NONE;
     data->type        = eHyprcursorDataType::HC_DATA_PNG;
 
@@ -418,9 +421,10 @@ SCursorRawShapeDataC* CHyprcursorManager::getRawShapeDataC(const char* shape_) {
             resultingImages.push_back(i.get());
         }
 
-        data->hotspotX = shape->hotspotX;
-        data->hotspotY = shape->hotspotY;
-        data->type     = shape->shapeType == SHAPE_PNG ? HC_DATA_PNG : HC_DATA_SVG;
+        data->hotspotX    = shape->hotspotX;
+        data->hotspotY    = shape->hotspotY;
+        data->nominalSize = shape->nominalSize;
+        data->type        = shape->shapeType == SHAPE_PNG ? HC_DATA_PNG : HC_DATA_SVG;
         break;
     }
 
@@ -494,12 +498,16 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape {} has {} frames", shape->directory, FRAMES.size());
 
+            const int PIXELSIDE = std::round(info.size / shape->nominalSize);
+
+            Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape has nominal {:.2f}, pixel size will be {}x", shape->nominalSize, PIXELSIDE);
+
             for (auto& f : FRAMES) {
                 auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
                 newImage->artificial     = true;
-                newImage->side           = info.size;
-                newImage->artificialData = new char[info.size * info.size * 4];
-                newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, info.size, info.size, info.size * 4);
+                newImage->side           = PIXELSIDE;
+                newImage->artificialData = new char[PIXELSIDE * PIXELSIDE * 4];
+                newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, PIXELSIDE, PIXELSIDE, PIXELSIDE * 4);
                 newImage->delay          = f->delay;
 
                 const auto PCAIRO = cairo_create(newImage->cairoSurface);
@@ -513,12 +521,12 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
                 const auto PTN = cairo_pattern_create_for_surface(f->cairoSurface);
                 cairo_pattern_set_extend(PTN, CAIRO_EXTEND_NONE);
-                const float scale = info.size / (float)f->side;
+                const float scale = PIXELSIDE / (float)f->side;
                 cairo_scale(PCAIRO, scale, scale);
                 cairo_pattern_set_filter(PTN, shape->resizeAlgo == HC_RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
                 cairo_set_source(PCAIRO, PTN);
 
-                cairo_rectangle(PCAIRO, 0, 0, info.size, info.size);
+                cairo_rectangle(PCAIRO, 0, 0, PIXELSIDE, PIXELSIDE);
 
                 cairo_fill(PCAIRO);
                 cairo_surface_flush(newImage->cairoSurface);
@@ -531,12 +539,16 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: svg shape {} has {} frames", shape->directory, FRAMES.size());
 
+            const int PIXELSIDE = std::round(info.size / shape->nominalSize);
+
+            Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: svg shape has nominal {:.2f}, pixel size will be {}x", shape->nominalSize, PIXELSIDE);
+
             for (auto& f : FRAMES) {
                 auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
                 newImage->artificial     = true;
-                newImage->side           = info.size;
-                newImage->artificialData = new char[info.size * info.size * 4];
-                newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, info.size, info.size, info.size * 4);
+                newImage->side           = PIXELSIDE;
+                newImage->artificialData = new char[PIXELSIDE * PIXELSIDE * 4];
+                newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, PIXELSIDE, PIXELSIDE, PIXELSIDE * 4);
                 newImage->delay          = f->delay;
 
                 const auto PCAIRO = cairo_create(newImage->cairoSurface);
@@ -584,7 +596,7 @@ void CHyprcursorManager::cursorSurfaceStyleDone(const SCursorStyleInfo& info) {
             const bool isArtificial = e->artificial;
 
             // clean artificial rasters made for this
-            if (isArtificial && e->side == info.size)
+            if (isArtificial && e->side == std::round(info.size / shape->nominalSize))
                 return true;
 
             // clean invalid non-svg rasters
