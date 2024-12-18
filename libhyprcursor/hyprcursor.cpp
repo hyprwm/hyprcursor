@@ -778,10 +778,11 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
         if (SHAPE->images.empty())
             return "meta invalid: no images for shape " + cursor.path().stem().string();
 
-        SHAPE->directory  = cursor.path().stem().string();
-        SHAPE->hotspotX   = meta.parsedData.hotspotX;
-        SHAPE->hotspotY   = meta.parsedData.hotspotY;
-        SHAPE->resizeAlgo = stringToAlgo(meta.parsedData.resizeAlgo);
+        SHAPE->directory   = cursor.path().stem().string();
+        SHAPE->hotspotX    = meta.parsedData.hotspotX;
+        SHAPE->hotspotY    = meta.parsedData.hotspotY;
+        SHAPE->nominalSize = meta.parsedData.nominalSize;
+        SHAPE->resizeAlgo  = stringToAlgo(meta.parsedData.resizeAlgo);
 
         zip_discard(zip);
     }
