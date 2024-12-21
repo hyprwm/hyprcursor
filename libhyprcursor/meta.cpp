@@ -142,6 +142,7 @@ std::optional<std::string> CMeta::parseHL() {
         meta = std::make_unique<Hyprlang::CConfig>(rawdata.c_str(), Hyprlang::SConfigOptions{.pathIsStream = !dataPath});
         meta->addConfigValue("hotspot_x", Hyprlang::FLOAT{0.F});
         meta->addConfigValue("hotspot_y", Hyprlang::FLOAT{0.F});
+        meta->addConfigValue("nominal_size", Hyprlang::FLOAT{1.F});
         meta->addConfigValue("resize_algorithm", Hyprlang::STRING{"nearest"});
         meta->registerHandler(::parseDefineSize, "define_size", {.allowFlags = false});
         meta->registerHandler(::parseOverride, "define_override", {.allowFlags = false});
@@ -151,9 +152,10 @@ std::optional<std::string> CMeta::parseHL() {
             return RESULT.getError();
     } catch (const char* err) { return "failed parsing meta: " + std::string{err}; }
 
-    parsedData.hotspotX   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_x"));
-    parsedData.hotspotY   = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_y"));
-    parsedData.resizeAlgo = std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"));
+    parsedData.hotspotX    = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_x"));
+    parsedData.hotspotY    = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_y"));
+    parsedData.nominalSize = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("nominal_size"));
+    parsedData.resizeAlgo  = std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"));
 
     return {};
 }
@@ -164,6 +166,7 @@ std::optional<std::string> CMeta::parseTOML() {
 
         parsedData.hotspotX = MANIFEST["General"]["hotspot_x"].value_or(0.f);
         parsedData.hotspotY = MANIFEST["General"]["hotspot_y"].value_or(0.f);
+        parsedData.hotspotY = MANIFEST["General"]["nominal_size"].value_or(1.f);
 
         const std::string OVERRIDES = MANIFEST["General"]["define_override"].value_or("");
         const std::string SIZES     = MANIFEST["General"]["define_size"].value_or("");
