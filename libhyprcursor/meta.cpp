@@ -4,6 +4,7 @@
 #include <toml++/toml.hpp>
 #include <filesystem>
 #include <regex>
+#include <algorithm>
 
 #include "VarList.hpp"
 
@@ -154,7 +155,7 @@ std::optional<std::string> CMeta::parseHL() {
 
     parsedData.hotspotX    = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_x"));
     parsedData.hotspotY    = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("hotspot_y"));
-    parsedData.nominalSize = std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("nominal_size"));
+    parsedData.nominalSize = std::clamp(std::any_cast<Hyprlang::FLOAT>(meta->getConfigValue("nominal_size")), 0.1F, 2.F);
     parsedData.resizeAlgo  = std::any_cast<Hyprlang::STRING>(meta->getConfigValue("resize_algorithm"));
 
     return {};
@@ -164,9 +165,9 @@ std::optional<std::string> CMeta::parseTOML() {
     try {
         auto MANIFEST = dataPath ? toml::parse_file(rawdata) : toml::parse(rawdata);
 
-        parsedData.hotspotX = MANIFEST["General"]["hotspot_x"].value_or(0.f);
-        parsedData.hotspotY = MANIFEST["General"]["hotspot_y"].value_or(0.f);
-        parsedData.hotspotY = MANIFEST["General"]["nominal_size"].value_or(1.f);
+        parsedData.hotspotX    = MANIFEST["General"]["hotspot_x"].value_or(0.f);
+        parsedData.hotspotY    = MANIFEST["General"]["hotspot_y"].value_or(0.f);
+        parsedData.nominalSize = std::clamp(MANIFEST["General"]["nominal_size"].value_or(1.F), 0.1F, 2.F);
 
         const std::string OVERRIDES = MANIFEST["General"]["define_override"].value_or("");
         const std::string SIZES     = MANIFEST["General"]["define_size"].value_or("");
