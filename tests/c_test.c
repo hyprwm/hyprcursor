@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("left_ptr images: %d\n", shapeData->len);
+    printf("left_ptr images: %ld\n", shapeData->len);
 
     for (size_t i = 0; i < shapeData->len; ++i) {
         printf("left_ptr image size: %ld\n", shapeData->images[i].len);
