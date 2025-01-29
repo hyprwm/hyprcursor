@@ -572,12 +572,14 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
                 if (!rsvg_handle_render_document(handle, PCAIRO, &rect, &error)) {
                     Debug::log(HC_LOG_ERR, logFn, "Failed rendering svg: {}", error->message);
+                    g_object_unref(handle);
                     return false;
                 }
 
                 // done
                 cairo_surface_flush(newImage->cairoSurface);
                 cairo_destroy(PCAIRO);
+                g_object_unref(handle);
             }
         } else {
             Debug::log(HC_LOG_ERR, logFn, "Invalid shapetype in loadThemeStyle");
