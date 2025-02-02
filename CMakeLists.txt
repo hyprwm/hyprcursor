@@ -63,8 +63,6 @@ set_target_properties(
 
 target_link_libraries(hyprcursor PkgConfig::deps)
 
-endif()
-
 # hyprcursor-util
 file(
   GLOB_RECURSE
