@@ -2,6 +2,7 @@
 #include "internalSharedTypes.hpp"
 #include "internalDefines.hpp"
 #include <array>
+#include <cstddef>
 #include <sstream>
 #include <cstdio>
 #include <filesystem>
@@ -96,7 +97,7 @@ static std::string getFirstTheme(PHYPRCURSORLOGFUNC logfn) {
     }
 
     for (auto& dir : systemThemeDirs) {
-        const auto FULLPATH = dir;
+        const auto& FULLPATH = dir;
         if (!pathAccessible(FULLPATH)) {
             Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
@@ -175,7 +176,7 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
     }
 
     for (auto& dir : systemThemeDirs) {
-        const auto FULLPATH = dir;
+        const auto& FULLPATH = dir;
         if (!pathAccessible(FULLPATH)) {
             Debug::log(HC_LOG_TRACE, logfn, "Skipping path {} because it's inaccessible.", FULLPATH);
             continue;
@@ -217,23 +218,19 @@ static std::string getFullPathForThemeName(const std::string& name, PHYPRCURSORL
     return "";
 }
 
-SManagerOptions::SManagerOptions() {
-    logFn                = nullptr;
-    allowDefaultFallback = true;
+SManagerOptions::SManagerOptions() : logFn(nullptr), allowDefaultFallback(true) {
+    ;
 }
 
 CHyprcursorManager::CHyprcursorManager(const char* themeName_) {
     init(themeName_);
 }
 
-CHyprcursorManager::CHyprcursorManager(const char* themeName_, PHYPRCURSORLOGFUNC fn) {
-    logFn = fn;
+CHyprcursorManager::CHyprcursorManager(const char* themeName_, PHYPRCURSORLOGFUNC fn) : logFn(fn) {
     init(themeName_);
 }
 
-CHyprcursorManager::CHyprcursorManager(const char* themeName_, SManagerOptions options) {
-    logFn                = options.logFn;
-    allowDefaultFallback = options.allowDefaultFallback;
+CHyprcursorManager::CHyprcursorManager(const char* themeName_, SManagerOptions options) : allowDefaultFallback(options.allowDefaultFallback), logFn(options.logFn) {
     init(themeName_);
 }
 
@@ -284,8 +281,7 @@ void CHyprcursorManager::init(const char* themeName_) {
 }
 
 CHyprcursorManager::~CHyprcursorManager() {
-    if (impl)
-        delete impl;
+    delete impl;
 }
 
 bool CHyprcursorManager::valid() {
@@ -508,7 +504,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                 auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
                 newImage->artificial     = true;
                 newImage->side           = PIXELSIDE;
-                newImage->artificialData = new char[PIXELSIDE * PIXELSIDE * 4];
+                newImage->artificialData = new char[static_cast<unsigned long>(PIXELSIDE * PIXELSIDE * 4)];
                 newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, PIXELSIDE, PIXELSIDE, PIXELSIDE * 4);
                 newImage->delay          = f->delay;
 
@@ -549,7 +545,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                 auto& newImage           = impl->loadedShapes[shape.get()].images.emplace_back(std::make_unique<SLoadedCursorImage>());
                 newImage->artificial     = true;
                 newImage->side           = PIXELSIDE;
-                newImage->artificialData = new char[PIXELSIDE * PIXELSIDE * 4];
+                newImage->artificialData = new char[static_cast<unsigned long>(PIXELSIDE * PIXELSIDE * 4)];
                 newImage->cairoSurface   = cairo_image_surface_create_for_data((unsigned char*)newImage->artificialData, CAIRO_FORMAT_ARGB32, PIXELSIDE, PIXELSIDE, PIXELSIDE * 4);
                 newImage->delay          = f->delay;
 
@@ -689,9 +685,9 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
 
         zip_file_t* meta_file = zip_fopen_index(zip, index, ZIP_FL_UNCHANGED);
 
-        char*       buffer = new char[1024 * 1024]; /* 1MB should be more than enough */
+        char*       buffer = new char[static_cast<unsigned long>(1024 * 1024)]; /* 1MB should be more than enough */
 
-        int         readBytes = zip_fread(meta_file, buffer, 1024 * 1024 - 1);
+        int         readBytes = zip_fread(meta_file, buffer, (1024 * 1024) - 1);
 
         zip_fclose(meta_file);
 
@@ -711,7 +707,7 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
             return "cursor" + cursor.path().string() + "failed to parse meta: " + *METAPARSERESULT;
 
         for (auto& i : meta.parsedData.definedSizes) {
-            SHAPE->images.push_back(SCursorImage{i.file, i.size, i.delayMs});
+            SHAPE->images.push_back(SCursorImage{.filename = i.file, .size = i.size, .delay = i.delayMs});
         }
 
         SHAPE->overrides = meta.parsedData.overrides;
@@ -755,8 +751,8 @@ std::optional<std::string> CHyprcursorImplementation::loadTheme() {
                 IMAGE->data    = new char[sb.size + 1];
                 IMAGE->dataLen = sb.size + 1;
             } else {
-                IMAGE->data    = new char[1024 * 1024]; /* 1MB should be more than enough, again. This probably should be in the spec. */
-                IMAGE->dataLen = 1024 * 1024;
+                IMAGE->data    = new char[static_cast<unsigned long>(1024 * 1024)]; /* 1MB should be more than enough, again. This probably should be in the spec. */
+                IMAGE->dataLen = static_cast<size_t>(1024 * 1024);
             }
 
             IMAGE->dataLen = zip_fread(image_file, IMAGE->data, IMAGE->dataLen - 1);

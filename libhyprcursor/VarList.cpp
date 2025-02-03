@@ -38,7 +38,7 @@ CVarList::CVarList(const std::string& in, const size_t lastArgNo, const char del
             break;
         }
         pos += s.size() + 1;
-        m_vArgs.emplace_back(removeBeginEndSpacesTabs(std::string_view{s}.data()));
+        m_vArgs.emplace_back(removeBeginEndSpacesTabs(s.data()));
     }
 }
 

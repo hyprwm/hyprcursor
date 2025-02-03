@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 
 #include "shared.h"
@@ -114,7 +114,7 @@ namespace Hyprcursor {
 
             SCursorShapeData   data;
 
-            for (size_t i = 0; i < size; ++i) {
+            for (int i = 0; i < size; ++i) {
                 SCursorImageData image;
                 image.delay    = images[i]->delay;
                 image.size     = images[i]->size;
