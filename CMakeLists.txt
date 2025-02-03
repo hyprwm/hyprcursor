@@ -20,6 +20,16 @@ set(LIBDIR ${CMAKE_INSTALL_FULL_LIBDIR})
 configure_file(hyprcursor.pc.in hyprcursor.pc @ONLY)
 
 set(CMAKE_CXX_STANDARD 23)
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wpedantic
+  -Wno-unused-parameter
+  -Wno-unused-value
+  -Wno-missing-field-initializers
+  -Wno-narrowing
+  -Wno-pointer-arith)
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(

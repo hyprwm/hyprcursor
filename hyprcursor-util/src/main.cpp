@@ -16,12 +16,12 @@
 #define ZIP_LENGTH_TO_END -1
 #endif
 
-enum eOperation {
+enum eOperation : uint8_t {
     OPERATION_CREATE  = 0,
     OPERATION_EXTRACT = 1,
 };
 
-eHyprcursorResizeAlgo explicitResizeAlgo = HC_RESIZE_INVALID;
+static eHyprcursorResizeAlgo explicitResizeAlgo = HC_RESIZE_INVALID;
 
 struct XCursorConfigEntry {
     int         size = 0, hotspotX = 0, hotspotY = 0, delay = 0;
@@ -119,7 +119,7 @@ static std::optional<std::string> createCursorThemeFromPath(const std::string& p
             return "couldn't parse meta: " + *PARSERESULT2;
 
         for (auto& i : meta.parsedData.definedSizes) {
-            SHAPE->images.push_back(SCursorImage{i.file, i.size, i.delayMs});
+            SHAPE->images.push_back(SCursorImage{.filename = i.file, .size = i.size, .delay = i.delayMs});
         }
 
         SHAPE->overrides = meta.parsedData.overrides;
@@ -388,7 +388,7 @@ int main(int argc, char** argv, char** envp) {
     eOperation  op   = OPERATION_CREATE;
     std::string path = "", out = "";
 
-    for (size_t i = 1; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
 
         if (arg == "-v" || arg == "--version") {

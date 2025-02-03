@@ -8,9 +8,9 @@
 
 #include "VarList.hpp"
 
-CMeta* currentMeta = nullptr;
+static CMeta* currentMeta = nullptr;
 
-CMeta::CMeta(const std::string& rawdata_, bool hyprlang_ /* false for toml */, bool dataIsPath) : rawdata(rawdata_), hyprlang(hyprlang_), dataPath(dataIsPath) {
+CMeta::CMeta(const std::string& rawdata_, bool hyprlang_ /* false for toml */, bool dataIsPath) : dataPath(dataIsPath), hyprlang(hyprlang_), rawdata(rawdata_) {
     if (!dataIsPath)
         return;
 
@@ -87,8 +87,8 @@ static Hyprlang::CParseResult parseDefineSize(const char* C, const char* V) {
         CMeta::SDefinedSize size;
 
         if (RHS.contains(",")) {
-            const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(",")));
-            const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(",") + 1));
+            const auto LL = removeBeginEndSpacesTabs(RHS.substr(0, RHS.find(',')));
+            const auto RR = removeBeginEndSpacesTabs(RHS.substr(RHS.find(',') + 1));
 
             try {
                 size.delayMs = std::stoull(RR);

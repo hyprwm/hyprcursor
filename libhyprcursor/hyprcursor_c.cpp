@@ -38,7 +38,7 @@ struct SCursorImageData** hyprcursor_get_cursor_image_data(struct hyprcursor_man
 }
 
 void hyprcursor_cursor_image_data_free(hyprcursor_cursor_image_data** data, int size) {
-    for (size_t i = 0; i < size; ++i) {
+    for (int i = 0; i < size; ++i) {
         free(data[i]);
     }
 
@@ -49,7 +49,7 @@ void hyprcursor_style_done(hyprcursor_manager_t* manager, hyprcursor_cursor_styl
     const auto       MGR = (CHyprcursorManager*)manager;
     SCursorStyleInfo info;
     info.size = info_.size;
-    return MGR->cursorSurfaceStyleDone(info);
+    MGR->cursorSurfaceStyleDone(info);
 }
 
 void hyprcursor_register_logging_function(struct hyprcursor_manager_t* manager, PHYPRCURSORLOGFUNC fn) {
