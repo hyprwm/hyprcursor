@@ -130,7 +130,7 @@ static Hyprlang::CParseResult parseOverride(const char* C, const char* V) {
     CVarList               overrides(VALUE, 0, ';');
 
     for (const auto& o : overrides) {
-        currentMeta->parsedData.overrides.push_back(VALUE);
+        currentMeta->parsedData.overrides.push_back(o);
     }
 
     return result;
