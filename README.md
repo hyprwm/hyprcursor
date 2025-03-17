@@ -37,16 +37,6 @@ It provides C and C++ bindings.
 
 For both C and C++, see `tests/`.
 
-## TODO
-
-Library:
- - [x] Support animated cursors
- - [x] Support SVG cursors
-
-Util:
- - [ ] Support compiling a theme with X
- - [x] Support decompiling animated cursors
-
 ## Building
 
 ### Deps:
