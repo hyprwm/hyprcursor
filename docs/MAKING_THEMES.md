@@ -58,6 +58,7 @@ hotspot_y = 0.0 # this goes 0 - 1
 # Define what cursor images this one should override.
 # What this means is that a request for a cursor name e.g. "arrow"
 # will instead use this one, even if this one is named something else.
+# You can see all the available cursor names at https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/staging/cursor-shape/cursor-shape-v1.xml#L71.
 define_override = arrow
 define_override = default
 
