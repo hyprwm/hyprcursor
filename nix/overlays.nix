@@ -15,7 +15,7 @@ in {
     inputs.hyprlang.overlays.default
     (final: prev: {
       hyprcursor = prev.callPackage ./default.nix {
-        stdenv = prev.gcc14Stdenv;
+        stdenv = prev.gcc15Stdenv;
         version = version + "+date=" + (mkDate (inputs.self.lastModifiedDate or "19700101")) + "_" + (inputs.self.shortRev or "dirty");
         inherit (final) hyprlang;
       };
