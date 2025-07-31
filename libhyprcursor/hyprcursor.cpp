@@ -496,7 +496,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape {} has {} frames", shape->directory, FRAMES.size());
 
-            const int PIXELSIDE = std::round(leader->side / shape->nominalSize);
+            const int PIXELSIDE = std::round(info.size / shape->nominalSize);
 
             Debug::log(HC_LOG_TRACE, logFn, "loadThemeStyle: png shape has nominal {:.2f}, pixel size will be {}x", shape->nominalSize, PIXELSIDE);
 
