@@ -1,6 +1,8 @@
 {
   lib,
   inputs,
+  self,
+  ...
 }:
 let
   mkDate =
@@ -15,25 +17,27 @@ in
 {
   default = inputs.self.overlays.hyprcursor;
 
-  hyprcursor = lib.composeManyExtensions [
+  hyprcursor-with-deps = lib.composeManyExtensions [
     inputs.hyprlang.overlays.default
-    (final: prev: {
-      hyprcursor = prev.callPackage ./default.nix {
-        stdenv = prev.gcc15Stdenv;
-        version =
-          version
-          + "+date="
-          + (mkDate (inputs.self.lastModifiedDate or "19700101"))
-          + "_"
-          + (inputs.self.shortRev or "dirty");
-        inherit (final) hyprlang;
-      };
-
-      hyprcursor-with-tests = final.hyprcursor.overrideAttrs (
-        _: _: {
-          cmakeFlags = [ (lib.cmakeBool "INSTALL_TESTS" true) ];
-        }
-      );
-    })
+    self.overlays.hyprcursor
   ];
+
+  hyprcursor = final: prev: {
+    hyprcursor = prev.callPackage ./default.nix {
+      stdenv = prev.gcc15Stdenv;
+      version =
+        version
+        + "+date="
+        + (mkDate (inputs.self.lastModifiedDate or "19700101"))
+        + "_"
+        + (inputs.self.shortRev or "dirty");
+      inherit (final) hyprlang;
+    };
+
+    hyprcursor-with-tests = final.hyprcursor.overrideAttrs (
+      _: _: {
+        cmakeFlags = [ (lib.cmakeBool "INSTALL_TESTS" true) ];
+      }
+    );
+  };
 }
