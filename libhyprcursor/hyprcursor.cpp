@@ -530,9 +530,7 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
                 cairo_pattern_set_filter(PTN, shape->resizeAlgo == HC_RESIZE_BILINEAR ? CAIRO_FILTER_GOOD : CAIRO_FILTER_NEAREST);
                 cairo_set_source(PCAIRO, PTN);
 
-                cairo_rectangle(PCAIRO, 0, 0, PIXELSIDE, PIXELSIDE);
-
-                cairo_fill(PCAIRO);
+                cairo_paint(PCAIRO);
                 cairo_surface_flush(newImage->cairoSurface);
 
                 cairo_pattern_destroy(PTN);
