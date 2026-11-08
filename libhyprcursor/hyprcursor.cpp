@@ -467,6 +467,9 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
             SLoadedCursorImage* leader    = nullptr;
             int                 leaderVal = 1000000;
             for (auto& image : impl->loadedShapes[shape.get()].images) {
+                if (image->artificial)
+                    continue;
+
                 if (image->side < IDEALSIDE)
                     continue;
 
@@ -479,6 +482,9 @@ bool CHyprcursorManager::loadThemeStyle(const SCursorStyleInfo& info) {
 
             if (!leader) {
                 for (auto& image : impl->loadedShapes[shape.get()].images) {
+                    if (image->artificial)
+                        continue;
+
                     if (std::abs((int)(image->side - IDEALSIDE)) > leaderVal)
                         continue;
 
