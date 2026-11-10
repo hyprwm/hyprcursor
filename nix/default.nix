@@ -21,8 +21,9 @@ stdenv.mkDerivation {
     pkg-config
   ];
 
+  propagatedBuildInputs = [ cairo ];
+
   buildInputs = [
-    cairo
     hyprlang
     librsvg
     libzip
